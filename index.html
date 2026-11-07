@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Installation Management System</title>
+<meta name="theme-color" content="#22292e">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="IMS">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1d2327;--mut:#6b767c;--bg:#f3f4f1;--card:#fff;--line:#dfe2dc;--side:#22292e;--amber:#e8a317;--amberd:#b87d00;--ok:#2e8b57;--okbg:#e3f3ea;--pend:#b45309;--pendbg:#fdf0dc;--bad:#c0392b;--r:10px}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Barlow,system-ui,sans-serif}
+h1,h2,h3{font-family:'Barlow Semi Condensed',Barlow,sans-serif;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.hide{display:none!important}
+
+/* login */
+#login{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:20px;background:var(--side)}
+.lbox{width:100%;max-width:380px;background:var(--card);border-radius:14px;padding:28px;border-top:6px solid var(--amber)}
+.lbox h1{font-size:26px;margin-bottom:4px}.lbox p{color:var(--mut);margin:0 0 18px}
+
+/* layout */
+#app{display:flex;min-height:100vh}
+#side{width:250px;background:var(--side);color:#e9ecea;display:flex;flex-direction:column;position:fixed;inset:0 auto 0 0;z-index:30;transition:transform .2s}
+.brand{padding:20px 20px 14px;border-bottom:1px solid #38424a;display:flex;align-items:center;gap:12px}.blogo{width:44px;height:44px;border-radius:10px;flex:none}
+.llogo{display:block;width:100%;max-width:290px;height:auto;margin:0 auto 20px}.lbox>p{text-align:center}.lbox h1{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.brand b{display:block;font:700 20px 'Barlow Semi Condensed',sans-serif;color:var(--amber)}
+.brand span{font-size:13px;color:#9fa9ae}
+#menu{padding:10px;flex:1;overflow:auto}
+#menu button{display:flex;gap:12px;align-items:center;width:100%;padding:12px 14px;margin-bottom:2px;background:none;border:0;border-radius:8px;color:#d3d9d6;text-align:left;cursor:pointer}
+#menu button:hover{background:#2e373d}
+#menu button.on{background:var(--amber);color:#1d2327;font-weight:600}
+.me{padding:14px 20px;border-top:1px solid #38424a;font-size:14px}
+.me small{color:#9fa9ae;display:block}
+.me button{margin-top:8px;background:none;border:1px solid #4b5760;color:#e9ecea;border-radius:8px;padding:6px 12px;cursor:pointer}
+#content{margin-left:250px;flex:1;min-width:0;display:flex;flex-direction:column;min-height:100vh}
+#top{display:flex;align-items:center;gap:12px;padding:14px 24px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+#top h2{font-size:22px}
+#pjtag{margin-left:auto;background:#fdf0dc;color:var(--pend);border-radius:99px;padding:3px 12px;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45vw}
+#burger{display:none;background:none;border:1px solid var(--line);border-radius:8px;width:42px;height:42px;font-size:20px;cursor:pointer}
+#main{padding:24px;max-width:1200px;width:100%;flex:1}
+.credit{font-size:13px;color:var(--mut);text-align:center;padding:14px;border-top:1px solid var(--line)}
+.credit.lg{border:0;color:#9fa9ae;padding:0}
+#scrim{display:none}
+@media(max-width:900px){
+ #side{transform:translateX(-100%)}#side.open{transform:none}
+ #scrim.open{display:block;position:fixed;inset:0;background:#0007;z-index:25}
+ #content{margin-left:0}#burger{display:block}#top{padding:10px 14px}#main{padding:14px}
+}
+
+/* komponen */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px}
+.grid{display:grid;gap:14px}.g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.g2{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.stat b{display:block;font:700 34px/1.1 'Barlow Semi Condensed',sans-serif}.stat span{color:var(--mut)}
+.stat.big{background:var(--side);color:#fff;border-color:var(--side)}.stat.big span{color:#b8c1c5}
+.bar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}.bar .inp{flex:1;min-width:180px}
+.inp,select.inp,textarea.inp{width:100%;padding:10px 12px;border:1px solid #c5cac2;border-radius:8px;background:#fff}
+textarea.inp{min-height:84px;resize:vertical}
+label.f{display:block;margin-bottom:12px;font-weight:500}label.f .inp{margin-top:5px;font-weight:400}
+.btn{border:1px solid #c5cac2;background:#fff;border-radius:8px;padding:10px 16px;cursor:pointer;font-weight:500}
+.btn.pri{background:var(--amber);border-color:var(--amber);color:#1d2327;font-weight:600}.btn.pri:hover{background:#f2b434}
+.btn.dng{color:var(--bad);border-color:#e3b8b3}.btn.sm{padding:6px 12px;font-size:14px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.tw{overflow-x:auto;padding:0}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+th{background:#f7f8f5;font-weight:600;font-size:14px;color:var(--mut)}
+tr:last-child td{border-bottom:0}.acts{white-space:nowrap;text-align:right}.acts .btn{margin-left:6px}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:600}
+.b-ok{background:var(--okbg);color:var(--ok)}.b-pend{background:var(--pendbg);color:var(--pend)}.b-off{background:#eceeea;color:var(--mut)}
+.prog{height:10px;background:#e7eae4;border-radius:99px;overflow:hidden}.prog i{display:block;height:100%;background:var(--ok);border-radius:99px}
+.prow{display:grid;grid-template-columns:140px 1fr 70px;gap:12px;align-items:center;margin:9px 0}
+.prow span:last-child{text-align:right;color:var(--mut);font-size:14px}
+@media(max-width:560px){.prow{grid-template-columns:100px 1fr 56px}}
+.empty{text-align:center;color:var(--mut);padding:36px 12px}
+.loading{padding:40px;text-align:center;color:var(--mut)}
+
+/* form instalasi */
+.dev .dh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font:600 18px 'Barlow Semi Condensed',sans-serif}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg button{padding:11px;border:2px solid var(--line);background:#fff;border-radius:8px;cursor:pointer;font-weight:600;color:var(--mut)}
+.seg button.on[data-s=Installed]{border-color:var(--ok);background:var(--okbg);color:var(--ok)}
+.seg button.on[data-s=Pending]{border-color:var(--pend);background:var(--pendbg);color:var(--pend)}
+.extra{display:none;margin-top:12px}.dev[data-st=Installed] .extra{display:block}
+.photo{display:flex;gap:12px;align-items:center;margin-top:10px}
+.photo label{cursor:pointer}.photo img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.photo small{color:var(--mut)}
+.stick{position:sticky;bottom:0;background:linear-gradient(transparent,var(--bg) 30%);padding:18px 0 8px;margin-top:6px}
+.stick .btn{width:100%;padding:14px;font-size:17px}
+.note{background:var(--pendbg);color:var(--pend);padding:10px 12px;border-radius:8px;margin-top:4px}
+
+/* kartu data instalasi */
+.ic{display:flex;flex-direction:column;gap:8px;margin:0}.ic h3{font-size:22px}.ic .m{color:var(--mut);font-size:14px}
+.ic .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hi{margin-bottom:10px}.hi .row{display:flex;justify-content:space-between;gap:8px;align-items:center}.hi .m{color:var(--mut);font-size:14px}.hi .sn{margin-top:4px}
+a.btn{display:inline-block;text-decoration:none;text-align:center}.note2{color:var(--mut);font-size:14px;margin:4px 0 14px}
+
+/* modal & toast */
+.ov{position:fixed;inset:0;background:#0009;z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow:auto}
+.md{background:#fff;border-radius:14px;width:100%;max-width:560px;padding:22px;margin:auto}
+.md.wide{max-width:760px}.md h3{font-size:22px;margin-bottom:14px}.md .ft{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;margin-top:14px}
+.chk{display:flex;gap:10px;align-items:center;margin-bottom:12px;font-weight:500}.chk input{width:20px;height:20px;accent-color:var(--amberd)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:10px;z-index:99;max-width:92vw}
+#toast.err{background:var(--bad)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <form class="lbox" id="lf">
+    <img class="llogo" src="logo.png" alt="Installation Management System">
+    <h1>Installation Management System</h1>
+    <!-- <p>MineSafeDrive - Freeport</p> -->
+    <label class="f">Username<input class="inp" id="lu" autocomplete="username" required></label>
+    <label class="f">Password<input class="inp" id="lp" type="password" autocomplete="current-password" required></label>
+    <label class="f">Project
+      <select class="inp" id="lpj" required><option value="">Memuat project...</option></select>
+    </label>
+    <button class="btn pri" style="width:100%;padding:12px" id="lb">Masuk</button>
+  </form>
+  <button type="button" class="btn hide" id="pwa" style="background:none;color:#fff;border:1px solid #5a666d">ðŸ“² Pasang aplikasi di perangkat ini</button>
+  <div class="credit lg"></div>
+</div>
+
+<div id="app" class="hide">
+  <aside id="side">
+    <div class="brand"><img class="blogo" src="icon-192.png" alt=""><div><b>IMS</b><span>Installation Management System</span></div></div>
+    <nav id="menu"></nav>
+    <div class="me"><b id="mn"></b><small id="mr"></small><button id="lo">Keluar</button></div>
+  </aside>
+  <div id="scrim"></div>
+  <div id="content">
+    <header id="top">
+      <button id="burger" aria-label="Buka menu">&#9776;</button>
+      <h2 id="title"></h2>
+      <span id="pjtag"></span>
+    </header>
+    <main id="main"></main>
+    <footer class="credit"></footer>
+  </div>
+</div>
+<div id="toast" class="hide"></div>
+<div id="diag" style="display:none;position:fixed;left:0;right:0;top:0;z-index:999;background:#c0392b;color:#fff;padding:10px 14px;font:14px monospace"></div>
+
+<script>
+/* ===== KOMUNIKASI KE SERVER (api.php) ===== */
+function rpc(action, token, p) {
+  return fetch('api.php', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+    body: JSON.stringify({ action: action, token: token || '', p: p || {} })
+  }).then(function (res) { return res.text(); }).then(function (t) {
+    try { return JSON.parse(t); }
+    catch (e) { throw new Error('Server mengembalikan respons tidak valid. Periksa ims_config.php dan koneksi database (lihat error_log di cPanel).'); }
+  }).catch(function (e) {
+    if (e instanceof TypeError) throw new Error('Gagal terhubung ke server');
+    throw e;
+  });
+}
+/* ===== CREDIT DEVELOPER: ubah teks di bawah ini ===== */
+var APP_CREDIT = 'Developed by Rusyanto \u00A9 ' + new Date().getFullYear();
+document.querySelectorAll('.credit').forEach(function (e) { e.textContent = APP_CREDIT; });
+
+/* ===== BACKGROUND LOGIN =====
+   Cara 1 (disarankan): taruh file login-bg.jpg (atau .png/.webp) di folder yang sama dengan index.html. Otomatis dipakai.
+   Cara 2: isi LOGIN_BG di bawah dengan URL gambar. */
+var LOGIN_BG = '';
+var LOGIN_BG_DARKEN = 0.55;   // 0 = tanpa lapisan gelap, 1 = hitam penuh
+(function () {
+  var l = document.getElementById('login');
+  function warn(m) { var d = document.getElementById('diag'); d.style.display = 'block'; d.textContent = 'Background login: ' + m; }
+  function apply(u) {
+    var g = 'rgba(20,26,30,' + LOGIN_BG_DARKEN + ')';
+    l.style.backgroundImage = 'linear-gradient(' + g + ',' + g + '),url("' + u + '")';
+    l.style.backgroundSize = 'cover'; l.style.backgroundPosition = 'center'; l.style.backgroundRepeat = 'no-repeat';
+  }
+  function driveId(s) {
+    var m = /\/d\/([\w-]{20,})/.exec(s) || /[?&]id=([\w-]{20,})/.exec(s);
+    return m ? m[1] : (/^[\w-]{20,}$/.test(s) ? s : '');
+  }
+  function tryList(list, all) {
+    if (!list.length) return warn('gambar tidak bisa dimuat. Pastikan file login-bg.jpg ada di folder yang sama dengan index.html.');
+    var u = list.shift(), im = new Image();
+    im.onload = function () { apply(u); };
+    im.onerror = function () { tryList(list); };
+    im.src = u;
+  }
+  var src = (LOGIN_BG || '').trim();
+  if (src) {
+    var id = /drive\.google\.com|^[\w-]{20,}$/.test(src) ? driveId(src) : '';
+    tryList(id ? ['https://drive.google.com/thumbnail?sz=w1920&id=' + id, 'https://lh3.googleusercontent.com/d/' + id + '=w1920']
+               : [src.replace(/["'()\\]/g, encodeURIComponent)]);
+  } else {
+    rpc('loginBg', null, {}).then(function (r) { if (r && r.ok && r.data) tryList([r.data]); }).catch(function () {});
+  }
+})();
+</script>
+
+<script>window.onerror=function(m,s,l){var d=document.getElementById('diag');d.style.display='block';d.textContent='Error JS: '+m+' (baris '+l+')';};</script>
+
+<script>
+
+
+/* =====================================================================
+   HELPER UMUM
+===================================================================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => '&#' + c.charCodeAt(0) + ';');
+const S = { token: null, user: null, page: null, pre: null };
+try { S.token = sessionStorage.getItem('tk'); } catch (e) {}
+
+/* komunikasi ke server (semua aksi lewat api.php, lihat rpc() di bagian atas) */
+function call(action, p) {
+  return rpc(action, S.token, p || {}).then(r => {
+    if (r && r.ok) return r.data;
+    throw new Error(r && r.error ? r.error : 'Tidak ada respons');
+  });
+}
+function toast(msg, err) {
+  const t = $('#toast');
+  t.textContent = msg; t.className = err ? 'err' : '';
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => t.classList.add('hide'), 3500);
+}
+function fail(e) {
+  if (/Sesi berakhir/.test(e.message)) return logout(true);
+  toast(e.message, true);
+}
+function modal(html, wide) {
+  const o = document.createElement('div');
+  o.className = 'ov';
+  o.innerHTML = `<div class="md ${wide ? 'wide' : ''}">${html}</div>`;
+  o.addEventListener('mousedown', e => { if (e.target === o) o.remove(); });
+  document.body.appendChild(o);
+  return o;
+}
+const confirmBox = msg => new Promise(res => {
+  const o = modal(`<h3>Konfirmasi</h3><p>${esc(msg)}</p><div class="ft"><button class="btn" id="n">Batal</button><button class="btn dng" id="y">Ya, hapus</button></div>`);
+  o.querySelector('#n').onclick = () => { o.remove(); res(false); };
+  o.querySelector('#y').onclick = () => { o.remove(); res(true); };
+});
+const badge = (on, a = 'Aktif', b = 'Nonaktif') => `<span class="badge ${on ? 'b-ok' : 'b-off'}">${on ? a : b}</span>`;
+const fmtDate = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
+const isLocalPhoto = id => /^loc_[0-9a-f]{32}$/.test(String(id));
+const photoThumb = id => isLocalPhoto(id) ? `uploads/${String(id).slice(4)}.jpg` : `https://drive.google.com/thumbnail?sz=w600&id=${id}`;
+const photoFull = id => isLocalPhoto(id) ? `uploads/${String(id).slice(4)}.jpg` : `https://drive.google.com/file/d/${id}/view`;
+const todayStr = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+const REASONS = ['Rusak', 'Hilang', 'Upgrade', 'Lainnya'];
+const isViewer = () => S.user && S.user.role === 'Viewer';
+
+/* =====================================================================
+   LOGIN / LOGOUT (dengan pilihan project)
+===================================================================== */
+let pjTimer = null, pjTries = 0;
+function loadProjects() {
+  const sel = $('#lpj');
+  clearTimeout(pjTimer);
+  const setMsg = m => { sel.innerHTML = '<option value="">' + esc(m) + '</option>'; };
+  setMsg('Memuat project...');
+  // jika server tidak menjawab dalam 20 detik, tampilkan pesan dan izinkan coba lagi
+  pjTimer = setTimeout(() => setMsg('Server tidak merespons. Klik di sini untuk coba lagi.'), 20000);
+  rpc('publicProjects', null, {})
+    .then(r => {
+      clearTimeout(pjTimer);
+      try {
+        if (!r) return setMsg('Server mengembalikan respons kosong.');
+        if (!r.ok) return setMsg('Gagal memuat project: ' + (r.error || ''));
+        const list = r.data || [];
+        if (!list.length) return setMsg('Belum ada project aktif. Jalankan install.php terlebih dahulu.');
+        let last = '';
+        try { last = localStorage.getItem('lastProject') || ''; } catch (e) {}
+        sel.innerHTML = '<option value="">\u2014 Pilih project \u2014</option>' +
+          list.map(x => '<option value="' + esc(x.id) + '">' + esc(x.name) + '</option>').join('');
+        if (last && list.some(x => x.id === last)) sel.value = last;
+        else if (list.length === 1) sel.value = list[0].id;
+      } catch (e) { setMsg('Error: ' + e.message); }
+    })
+    .catch(e => { clearTimeout(pjTimer); setMsg('Gagal memuat project: ' + (e && e.message ? e.message : 'tidak diketahui')); });
+}
+// klik dropdown saat kosong/gagal = coba muat ulang
+$('#lpj').addEventListener('mousedown', () => {
+  const v = $('#lpj'); if (v.options.length <= 1 && !v.value) { pjTries = 0; loadProjects(); }
+});
+
+$('#lf').addEventListener('submit', async e => {
+  e.preventDefault();
+  const b = $('#lb');
+  b.disabled = true; b.textContent = 'Memeriksa...';
+  try {
+    const projectId = $('#lpj').value;
+    if (!projectId) throw new Error('Pilih project terlebih dahulu');
+    const r = await call('login', { username: $('#lu').value, password: $('#lp').value, projectId });
+    S.token = r.token; S.user = r.user;
+    try { sessionStorage.setItem('tk', r.token); } catch (x) {}
+    try { localStorage.setItem('lastProject', projectId); } catch (x) {}
+    start();
+  } catch (x) { toast(x.message, true); }
+  b.disabled = false; b.textContent = 'Masuk';
+});
+
+function logout(expired) {
+  if (!expired) call('logout').catch(() => {});
+  S.token = S.user = null;
+  try { sessionStorage.removeItem('tk'); } catch (e) {}
+  $('#app').classList.add('hide');
+  $('#login').classList.remove('hide');
+  $('#lp').value = '';
+  loadProjects();
+  if (expired) toast('Sesi berakhir, silakan login kembali.', true);
+}
+$('#lo').onclick = () => logout();
+
+/* =====================================================================
+   NAVIGASI
+   [id, label, ikon, adminOnly, hiddenForViewer]
+===================================================================== */
+const MENU = [
+  ['dashboard', 'Dashboard', '\uD83D\uDCCA'],
+  ['projects', 'Master Project', '\uD83D\uDDC2\uFE0F', 1],
+  ['units', 'Master Unit', '\uD83D\uDE9A', 1],
+  ['devices', 'Master Device', '\uD83D\uDCDF', 1],
+  ['users', 'User Management', '\uD83D\uDC65', 1],
+  ['input', 'Input Data Instalasi', '\uD83D\uDCDD', 0, 1],
+  ['installs', 'Data Instalasi', '\uD83D\uDCCB'],
+  ['history', 'Riwayat Penggantian', '\uD83D\uDD04'],
+  ['report', 'Export Report', '\uD83D\uDCC4']
+];
+const allowed = () => MENU.filter(m =>
+  (!m[3] || S.user.role === 'Admin') && !(m[4] && isViewer()));
+
+function start() {
+  $('#login').classList.add('hide');
+  $('#app').classList.remove('hide');
+  $('#mn').textContent = S.user.name;
+  $('#mr').textContent = S.user.role + (S.user.projectName ? ' \u00B7 ' + S.user.projectName : '');
+  $('#pjtag').textContent = S.user.projectName || '';
+  $('#menu').innerHTML = allowed().map(m => `<button data-p="${m[0]}"><span>${m[2]}</span>${m[1]}</button>`).join('');
+  go('dashboard');
+}
+$('#menu').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (b) go(b.dataset.p);
+});
+function menuToggle(o) {
+  $('#side').classList.toggle('open', o);
+  $('#scrim').classList.toggle('open', o);
+}
+$('#burger').onclick = () => menuToggle(true);
+$('#scrim').onclick = () => menuToggle(false);
+
+async function go(id) {
+  const m = allowed().find(x => x[0] === id) || allowed()[0];
+  S.page = m[0];
+  menuToggle(false);
+  document.querySelectorAll('#menu button').forEach(b => b.classList.toggle('on', b.dataset.p === m[0]));
+  $('#title').textContent = m[1];
+  $('#main').innerHTML = '<div class="loading">Memuat...</div>';
+  window.scrollTo(0, 0);
+  try { await (CRUD[m[0]] ? pageCrud(m[0]) : PAGES[m[0]]()); }
+  catch (e) { fail(e); $('#main').innerHTML = '<div class="empty">Gagal memuat data.</div>'; }
+}
+
+/* =====================================================================
+   PDF / EXCEL: helper unduhan
+===================================================================== */
+function b64Url(r, mime) {
+  const bin = atob(r.base64), a = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+  return URL.createObjectURL(new Blob([a], { type: mime }));
+}
+const xlsxUrl = r => b64Url(r, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+const kb = r => Math.max(1, Math.round(r.size / 1024)) + ' KB';
+function pdfInfo(r) { return esc(r.name) + ' \u00B7 ' + kb(r) + ' \u00B7 ' + r.units + ' unit' + (r.photos ? ' \u00B7 ' + r.photos + ' foto' : ''); }
+function pdfLinks(r) {
+  const u = URL.createObjectURL(new Blob([r.html], { type: 'text/html' }));
+  return `<a class="btn pri" href="${u}" target="_blank" rel="noopener">Buka laporan &amp; cetak PDF</a>`;
+}
+function pdfModal(r) {
+  const o = modal(`<h3>Laporan siap</h3><p style="margin-top:-6px;color:var(--mut)">${pdfInfo(r)}</p><div class="ft">${pdfLinks(r)}<button class="btn" id="px">Tutup</button></div>`);
+  o.querySelector('#px').onclick = () => o.remove();
+}
+
+/* =====================================================================
+   RIWAYAT PENGGANTIAN: tampilan kartu
+===================================================================== */
+function histHtml(list, showUnit) {
+  if (!list.length) return '<div class="card empty">Belum ada penggantian perangkat.</div>';
+  return list.map(h => `<div class="card hi"><div class="row"><b>${showUnit ? esc(h.unitNo) + ' \u00B7 ' : ''}${esc(h.deviceName)}</b><span class="badge b-pend">${esc(h.reason)}</span></div>
+    <div class="m">${fmtDate(h.date)} \u00B7 oleh ${esc(h.createdBy)}</div>
+    ${h.oldSN || h.newSN ? `<div class="sn">SN: ${esc(h.oldSN) || '-'} \u2192 <b>${esc(h.newSN) || '-'}</b></div>` : ''}
+    ${h.note ? `<div class="m">Catatan: ${esc(h.note)}</div>` : ''}
+    ${h.photo ? `<a href="${photoFull(h.photo)}" target="_blank" rel="noopener"><img src="${photoThumb(h.photo)}" alt="Foto perangkat baru" style="width:56px;height:56px;object-fit:cover;border-radius:6px;margin-top:8px"></a>` : ''}
+    </div>`).join('');
+}
+
+/* Dialog: SN berubah saat edit -> koreksi atau penggantian? Mengembalikan array changes, atau null jika batal. */
+function askChanges(list) {
+  return new Promise(res => {
+    const o = modal('<h3>Perubahan Serial Number</h3><p style="margin-top:-6px;color:var(--mut)">Serial Number berikut berbeda dari data tersimpan. Pilih jenis perubahannya.</p><form id="cf">' +
+      list.map((c, i) => `<div class="card" data-i="${i}"><b>${esc(c.name)}</b><div style="color:var(--mut);font-size:14px">${esc(c.oldSN)} \u2192 ${esc(c.newSN)}</div>
+        <label class="chk" style="margin:10px 0 6px"><input type="radio" name="t${i}" value="fix" checked>Koreksi salah ketik (tanpa riwayat)</label>
+        <label class="chk" style="margin:0"><input type="radio" name="t${i}" value="replace">Penggantian perangkat (dicatat di riwayat)</label>
+        <div class="rp hide" style="margin-top:10px">
+          <label class="f" style="margin-bottom:8px">Alasan<select class="inp r">${REASONS.map(x => '<option>' + x + '</option>').join('')}</select></label>
+          <label class="f" style="margin-bottom:8px">Tanggal penggantian<input class="inp d" type="date" value="${todayStr()}"></label>
+          <input class="inp n" placeholder="Catatan (opsional)">
+        </div></div>`).join('') +
+      '<div class="ft"><button type="button" class="btn" id="cx">Batal</button><button class="btn pri">Lanjut Simpan</button></div></form>');
+    const f = o.querySelector('#cf');
+    f.addEventListener('change', e => {
+      if (e.target.type === 'radio') e.target.closest('.card').querySelector('.rp').classList.toggle('hide', e.target.value !== 'replace');
+    });
+    o.querySelector('#cx').onclick = () => { o.remove(); res(null); };
+    f.onsubmit = e => {
+      e.preventDefault();
+      const out = [];
+      list.forEach((c, i) => {
+        const card = f.querySelector(`[data-i="${i}"]`);
+        if (card.querySelector('input[type=radio]:checked').value === 'replace')
+          out.push({ deviceId: c.deviceId, type: 'replace', reason: card.querySelector('.r').value,
+                     date: card.querySelector('.d').value, note: card.querySelector('.n').value });
+      });
+      o.remove(); res(out);
+    };
+  });
+}
+
+/* Dialog "Ganti Perangkat" dari detail unit */
+async function replaceModal(r, done) {
+  let fd;
+  try { fd = await call('formData'); } catch (e) { return fail(e); }
+  const flags = {};
+  fd.devices.forEach(d => flags[d.id] = d);
+  const items = r.details.filter(x => x.status === 'Installed');
+  if (!items.length) return toast('Belum ada device berstatus Installed pada unit ini', true);
+  let photo = '', busy = false;
+  const o = modal('<h3>Ganti Perangkat \u00B7 Unit ' + esc(r.unitNo) + '</h3><form id="rf">' +
+    '<label class="f">Device<select class="inp" id="rd">' + items.map(x => '<option value="' + x.deviceId + '">' + esc(x.name) + '</option>').join('') + '</select></label>' +
+    '<div id="rsn"></div>' +
+    '<label class="f">Tanggal Penggantian<input class="inp" type="date" id="rdt" value="' + todayStr() + '" required></label>' +
+    '<label class="f">Alasan<select class="inp" id="rrs">' + REASONS.map(x => '<option>' + x + '</option>').join('') + '</select></label>' +
+    '<label class="f">Catatan (opsional)<input class="inp" id="rnt"></label><div id="rph"></div>' +
+    '<div class="ft"><button type="button" class="btn" id="cx">Batal</button><button class="btn pri" id="sv">Simpan Penggantian</button></div></form>');
+  const q = s => o.querySelector(s);
+  function drawDev() {
+    const x = items.find(i => i.deviceId === q('#rd').value), f = flags[x.deviceId] || {};
+    photo = '';
+    q('#rsn').innerHTML = f.needSN
+      ? '<p style="margin:0 0 8px;color:var(--mut)">SN lama: <b>' + (esc(x.sn) || '-') + '</b></p><label class="f">Serial Number Baru<input class="inp" id="rnew" autocomplete="off" required></label>'
+      : '';
+    q('#rph').innerHTML = f.needPhoto
+      ? '<div class="photo" style="margin-bottom:8px"><img class="hide" alt="Foto perangkat baru"><label class="btn sm">\uD83D\uDCF7 Foto perangkat baru<input type="file" accept="image/*" hidden></label><small></small></div>'
+      : '';
+  }
+  drawDev();
+  q('#rd').onchange = drawDev;
+  q('#cx').onclick = () => o.remove();
+  o.addEventListener('change', async e => {
+    if (e.target.type !== 'file' || !e.target.files[0]) return;
+    const x = items.find(i => i.deviceId === q('#rd').value), small = q('#rph small'), im = q('#rph img');
+    busy = true; q('#sv').disabled = true; small.textContent = 'Mengunggah...';
+    try {
+      const url = await compress(e.target.files[0]);
+      im.src = url; im.classList.remove('hide');
+      const up = await call('uploadPhoto', { data: url.split(',')[1], name: r.unitNo + '_ganti_' + x.name });
+      photo = up.id; small.textContent = 'Foto terunggah';
+    } catch (err) { fail(err); small.textContent = ''; im.classList.add('hide'); }
+    busy = false; q('#sv').disabled = false; e.target.value = '';
+  });
+  q('#rf').onsubmit = async e => {
+    e.preventDefault();
+    if (busy) return;
+    const btn = q('#sv');
+    btn.disabled = true;
+    try {
+      await call('replaceDevice', { unitId: r.unitId, deviceId: q('#rd').value, date: q('#rdt').value,
+        reason: q('#rrs').value, note: q('#rnt').value, newSN: q('#rnew') ? q('#rnew').value : '', photo });
+      o.remove(); toast('Penggantian tercatat'); done();
+    } catch (err) { fail(err); btn.disabled = false; }
+  };
+}
+
+/* =====================================================================
+   HALAMAN
+===================================================================== */
+const PAGES = {};
+
+/* ---------- Dashboard ---------- */
+PAGES.dashboard = async () => {
+  const d = await call('dashboard');
+  const maxRepl = d.replByDevice.length ? d.replByDevice[0].count : 1;
+  $('#main').innerHTML = `
+  <div class="grid g4" style="margin-bottom:14px">
+    <div class="card stat big" style="margin:0"><b>${d.overall}%</b><span>Progress keseluruhan</span></div>
+    <div class="card stat" style="margin:0"><b>${d.total}</b><span>Total unit aktif</span></div>
+    <div class="card stat" style="margin:0"><b style="color:var(--ok)">${d.complete}</b><span>Instalasi lengkap</span></div>
+    <div class="card stat" style="margin:0"><b style="color:var(--pend)">${d.partial}</b><span>Sebagian pending</span></div>
+    <div class="card stat" style="margin:0"><b>${d.notStarted}</b><span>Belum diinstal</span></div>
+    <div class="card stat" style="margin:0"><b>${d.replTotal}</b><span>Penggantian perangkat</span></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h3 style="margin-bottom:6px">Progress per device</h3>
+      ${d.devices.map(x => {
+        const p = d.total ? Math.round(x.installed * 100 / d.total) : 0;
+        return `<div class="prow"><span>${esc(x.name)}</span><div class="prog"><i style="width:${p}%"></i></div><span>${x.installed}/${d.total}</span></div>`;
+      }).join('') || '<div class="empty">Belum ada device.</div>'}
+      ${d.replByDevice.length ? '<h3 style="margin:16px 0 4px">Paling sering diganti</h3>' + d.replByDevice.map(x =>
+        `<div class="prow"><span>${esc(x.name)}</span><div class="prog"><i style="width:${Math.round(x.count * 100 / maxRepl)}%;background:var(--pend)"></i></div><span>${x.count}x</span></div>`).join('') : ''}
+    </div>
+    <div class="card tw" style="max-height:520px;overflow:auto"><table style="min-width:420px"><thead><tr><th>Unit</th><th>Progress</th><th>Tanggal</th></tr></thead><tbody>
+      ${d.units.map(u => `<tr><td><b>${esc(u.unitNo)}</b><br><small style="color:var(--mut)">${esc(u.type)}</small></td>
+        <td style="min-width:120px">${u.started ? `<div class="prog"><i style="width:${u.pct}%"></i></div><small>${u.installed}/${u.total} (${u.pct}%)</small>` : badge(false, '', 'Belum diinstal')}</td>
+        <td>${fmtDate(u.date)}</td></tr>`).join('') || '<tr><td colspan="3" class="empty">Belum ada unit.</td></tr>'}
+    </tbody></table></div>
+  </div>`;
+};
+
+/* ---------- CRUD generik: Project, Unit, Device, User ---------- */
+const CRUD = {
+  projects: { name: 'Project', list: 'listProjects', save: 'saveProject', del: 'deleteProject',
+    cols: [['name', 'Nama Project']],
+    fields: [{ k: 'name', l: 'Nama Project', req: 1 }, { k: 'copyFrom', l: 'Master Device awal', t: 'copy' }, { k: 'active', l: 'Project aktif', t: 'check' }],
+    def: { active: true } },
+  units: { name: 'Unit', list: 'listUnits', save: 'saveUnit', del: 'deleteUnit',
+    cols: [['unitNo', 'Nomor Unit'], ['type', 'Tipe / Model'], ['notes', 'Catatan']],
+    fields: [{ k: 'unitNo', l: 'Nomor Unit', req: 1 }, { k: 'type', l: 'Tipe / Model' }, { k: 'notes', l: 'Catatan' },
+             { k: 'active', l: 'Unit aktif', t: 'check' }],
+    def: { active: true } },
+  devices: { name: 'Device', list: 'listDevices', save: 'saveDevice', del: 'deleteDevice',
+    cols: [['name', 'Nama Device'], ['needSN', 'Serial Number', 'bool'], ['needPhoto', 'Foto', 'bool']],
+    fields: [{ k: 'name', l: 'Nama Device', req: 1 }, { k: 'needSN', l: 'Butuh Serial Number', t: 'check' },
+             { k: 'needPhoto', l: 'Butuh Foto', t: 'check' }, { k: 'active', l: 'Device aktif', t: 'check' }],
+    def: { active: true } },
+  users: { name: 'User', list: 'listUsers', save: 'saveUser', del: 'deleteUser',
+    cols: [['username', 'Username'], ['name', 'Nama'], ['role', 'Role']],
+    fields: [{ k: 'username', l: 'Username', req: 1 }, { k: 'name', l: 'Nama Lengkap', req: 1 },
+             { k: 'role', l: 'Role', t: 'select', opts: ['Engineer', 'Admin', 'Viewer'] },
+             { k: 'password', l: 'Password', t: 'password' }, { k: 'active', l: 'User aktif', t: 'check' }],
+    def: { active: true, role: 'Engineer' } }
+};
+
+async function pageCrud(id) {
+  const c = CRUD[id], rows = await call(c.list);
+  $('#main').innerHTML = `<div class="bar"><input class="inp" id="q" placeholder="Cari ${c.name.toLowerCase()}..." aria-label="Cari"><button class="btn pri" id="add">+ Tambah ${c.name}</button></div>
+  <div class="card tw"><table><thead><tr>${c.cols.map(x => `<th>${x[1]}</th>`).join('')}<th>Status</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>`;
+
+  const draw = () => {
+    const q = $('#q').value.toLowerCase();
+    const list = rows.filter(r => c.cols.some(x => String(r[x[0]]).toLowerCase().includes(q)));
+    $('#tb').innerHTML = list.map(r => `<tr>${c.cols.map(x => `<td>${x[2] === 'bool' ? (r[x[0]] ? 'Ya' : '-') : (esc(r[x[0]]) || '-')}</td>`).join('')}
+      <td>${badge(r.active)}</td><td class="acts"><button class="btn sm" data-e="${r.id}">Edit</button><button class="btn sm dng" data-d="${r.id}">Hapus</button></td></tr>`).join('')
+      || `<tr><td colspan="${c.cols.length + 2}" class="empty">Belum ada data. Klik \u201CTambah ${c.name}\u201D untuk memulai.</td></tr>`;
+  };
+  draw();
+  $('#q').oninput = draw;
+  $('#add').onclick = () => form(null);
+  $('#tb').onclick = async e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    const r = rows.find(x => x.id === (b.dataset.e || b.dataset.d));
+    if (b.dataset.e) return form(r);
+    if (await confirmBox(`Hapus ${c.name.toLowerCase()} \u201C${r[c.cols[0][0]]}\u201D? Tindakan ini tidak bisa dibatalkan.`)) {
+      try { await call(c.del, { id: r.id }); toast(`${c.name} dihapus`); go(id); } catch (x) { fail(x); }
+    }
+  };
+
+  function form(r) {
+    const v = r || c.def;
+    const o = modal(`<h3>${r ? 'Edit' : 'Tambah'} ${c.name}</h3><form id="mf">${c.fields.map(f => {
+      if (f.t === 'copy') return r ? '' : `<label class="f">${f.l}<select class="inp" name="${f.k}"><option value="__default">Device standar (14 device bawaan)</option><option value="__empty">Kosong (isi sendiri di Master Device)</option>${rows.map(x => `<option value="${esc(x.id)}">Salin dari project: ${esc(x.name)}</option>`).join('')}</select></label>`;
+      if (f.t === 'check') return `<label class="chk"><input type="checkbox" name="${f.k}" ${v[f.k] ? 'checked' : ''}>${f.l}</label>`;
+      if (f.t === 'select') return `<label class="f">${f.l}<select class="inp" name="${f.k}">${f.opts.map(x => `<option ${v[f.k] === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>`;
+      if (f.t === 'password') return `<label class="f">${f.l}${r ? ' (kosongkan jika tidak diubah)' : ''}<input class="inp" type="password" name="${f.k}" autocomplete="new-password" ${r ? '' : 'required'} minlength="6"></label>`;
+      return `<label class="f">${f.l}<input class="inp" name="${f.k}" value="${esc(v[f.k])}" ${f.req ? 'required' : ''}></label>`;
+    }).join('')}<div class="ft"><button type="button" class="btn" id="cx">Batal</button><button class="btn pri">Simpan</button></div></form>`);
+    o.querySelector('#cx').onclick = () => o.remove();
+    o.querySelector('#mf').onsubmit = async e => {
+      e.preventDefault();
+      const p = { id: r ? r.id : '' };
+      c.fields.forEach(f => { const el = e.target.elements[f.k]; if (!el) return; p[f.k] = f.t === 'check' ? el.checked : el.value; });
+      const btn = e.target.querySelector('.pri');
+      btn.disabled = true;
+      try { await call(c.save, p); o.remove(); toast(`${c.name} disimpan`); go(id); }
+      catch (x) { fail(x); btn.disabled = false; }
+    };
+  }
+}
+
+/* ---------- Input Data Instalasi ---------- */
+function compress(file) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader(), img = new Image();
+    fr.onload = () => {
+      img.onload = () => {
+        const sc = Math.min(1, 1280 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+        c.width = img.width * sc; c.height = img.height * sc;
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        res(c.toDataURL('image/jpeg', .8));
+      };
+      img.onerror = () => rej(new Error('File bukan gambar'));
+      img.src = fr.result;
+    };
+    fr.onerror = () => rej(new Error('Gagal membaca file'));
+    fr.readAsDataURL(file);
+  });
+}
+
+PAGES.input = async () => {
+  const fd = await call('formData'), devs = fd.devices, done = new Set(fd.doneUnitIds);
+  const st = {}, orig = {};
+  let uploading = 0;
+  if (!fd.units.length || !devs.length) {
+    $('#main').innerHTML = '<div class="card empty">Data master belum lengkap untuk project ini. Minta Admin menambahkan unit dan device aktif.</div>';
+    return;
+  }
+  $('#main').innerHTML = `
+  <div class="card"><div class="grid g2">
+    <label class="f" style="margin:0">Nomor Unit<select class="inp" id="unit"><option value="">\u2014 Pilih unit \u2014</option>
+      ${fd.units.map(u => `<option value="${u.id}">${esc(u.unitNo)}${u.type ? ' \u00B7 ' + esc(u.type) : ''}${done.has(u.id) ? ' \u2714 sudah ada data' : ''}</option>`).join('')}</select></label>
+    <label class="f" style="margin:0">Tanggal Instalasi<input class="inp" type="date" id="date" value="${todayStr()}"></label>
+  </div><div id="note"></div></div>
+  <div id="devs" class="hide">${devs.map(d => `<div class="card dev" data-id="${d.id}">
+      <div class="dh">${esc(d.name)}</div>
+      <div class="seg"><button type="button" data-s="Installed">Installed</button><button type="button" data-s="Pending">Pending</button></div>
+      ${d.needSN || d.needPhoto ? `<div class="extra">
+        ${d.needSN ? '<label class="f" style="margin:0">Serial Number<input class="inp sn" autocomplete="off" placeholder="Masukkan serial number"></label>' : ''}
+        ${d.needPhoto ? `<div class="photo"><img class="hide" alt="Foto ${esc(d.name)}"><label class="btn sm">\uD83D\uDCF7 Ambil / pilih foto<input type="file" accept="image/*" hidden></label><small></small></div>` : ''}</div>` : ''}
+    </div>`).join('')}
+    <div class="card"><label class="f" style="margin:0">Remarks<textarea class="inp" id="rem" placeholder="Catatan tambahan (opsional)"></textarea></label></div>
+    <div class="stick"><button class="btn pri" id="save">Simpan Data Instalasi</button></div></div>`;
+
+  const card = id => document.querySelector(`.dev[data-id="${id}"]`);
+  function paint() {
+    devs.forEach(d => {
+      const s = st[d.id], c = card(d.id);
+      c.dataset.st = s.status || '';
+      c.querySelectorAll('.seg button').forEach(b => b.classList.toggle('on', b.dataset.s === s.status));
+      const sn = c.querySelector('.sn');
+      if (sn) sn.value = s.sn || '';
+      const im = c.querySelector('img');
+      if (im) {
+        const src = s.prev || (s.photo ? photoThumb(s.photo) : '');
+        im.src = src; im.classList.toggle('hide', !src);
+        c.querySelector('small').textContent = s.photo ? 'Foto tersimpan' : '';
+      }
+    });
+  }
+  async function loadUnit(id) {
+    devs.forEach(d => st[d.id] = { status: '', sn: '', photo: '', prev: '' });
+    Object.keys(orig).forEach(k => delete orig[k]);
+    $('#rem').value = ''; $('#note').innerHTML = '';
+    $('#devs').classList.toggle('hide', !id);
+    if (!id) return;
+    if (done.has(id)) {
+      try {
+        const ex = await call('getInstall', { unitId: id });
+        if (ex) {
+          $('#date').value = ex.date; $('#rem').value = ex.remarks || '';
+          ex.details.forEach(x => {
+            if (st[x.deviceId]) {
+              st[x.deviceId] = { status: x.status, sn: x.sn, photo: x.photo, prev: '' };
+              orig[x.deviceId] = { status: x.status, sn: x.sn };
+            }
+          });
+          $('#note').innerHTML = '<div class="note">Unit ini sudah punya data. Perubahan yang disimpan akan memperbarui data tersebut.</div>';
+        }
+      } catch (e) { fail(e); }
+    }
+    paint();
+  }
+  $('#unit').onchange = e => loadUnit(e.target.value);
+  $('#devs').addEventListener('click', e => {
+    const b = e.target.closest('.seg button');
+    if (!b) return;
+    st[b.closest('.dev').dataset.id].status = b.dataset.s;
+    paint();
+  });
+  $('#devs').addEventListener('input', e => {
+    if (e.target.classList.contains('sn')) st[e.target.closest('.dev').dataset.id].sn = e.target.value;
+  });
+  $('#devs').addEventListener('change', async e => {
+    if (e.target.type !== 'file' || !e.target.files[0]) return;
+    const c = e.target.closest('.dev'), s = st[c.dataset.id], small = c.querySelector('small');
+    uploading++; $('#save').disabled = true; small.textContent = 'Mengunggah...';
+    try {
+      const url = await compress(e.target.files[0]);
+      s.prev = url;
+      const unitNo = $('#unit').selectedOptions[0].text.split(' ')[0];
+      const r = await call('uploadPhoto', { data: url.split(',')[1], name: unitNo + '_' + c.querySelector('.dh').textContent });
+      s.photo = r.id; toast('Foto terunggah');
+    } catch (x) { fail(x); s.prev = ''; }
+    uploading--;
+    if (!uploading) $('#save').disabled = false;
+    paint(); e.target.value = '';
+  });
+
+  $('#save').onclick = async () => {
+    const unitId = $('#unit').value;
+    if (!unitId) return toast('Pilih nomor unit terlebih dahulu', true);
+    const miss = devs.find(d => !st[d.id].status);
+    if (miss) { card(miss.id).scrollIntoView({ behavior: 'smooth', block: 'center' }); return toast('Pilih status untuk ' + miss.name, true); }
+    const changed = devs.filter(d => d.needSN && orig[d.id] && orig[d.id].status === 'Installed' && orig[d.id].sn &&
+        st[d.id].status === 'Installed' && st[d.id].sn.trim() !== orig[d.id].sn)
+      .map(d => ({ deviceId: d.id, name: d.name, oldSN: orig[d.id].sn, newSN: st[d.id].sn.trim() }));
+    let changes = [];
+    if (changed.length) { const ans = await askChanges(changed); if (!ans) return; changes = ans; }
+    const b = $('#save');
+    b.disabled = true; b.textContent = 'Menyimpan...';
+    try {
+      await call('saveInstall', { unitId, changes, date: $('#date').value, remarks: $('#rem').value,
+        details: devs.map(d => ({ deviceId: d.id, status: st[d.id].status, sn: st[d.id].sn, photo: st[d.id].photo })) });
+      toast('Data instalasi tersimpan'); go('installs');
+    } catch (x) { fail(x); b.disabled = false; b.textContent = 'Simpan Data Instalasi'; }
+  };
+  if (S.pre) { $('#unit').value = S.pre; const id = S.pre; S.pre = null; loadUnit(id); }
+};
+
+/* ---------- Data Instalasi ---------- */
+PAGES.installs = async () => {
+  let rows = await call('listInstalls');
+  $('#main').innerHTML = '<div class="bar"><input class="inp" id="q" placeholder="Cari nomor unit..." aria-label="Cari"></div><div class="grid g2" id="list"></div>';
+  const draw = () => {
+    const q = $('#q').value.toLowerCase(), l = rows.filter(r => String(r.unitNo).toLowerCase().includes(q));
+    $('#list').innerHTML = l.map(r => `<div class="card ic"><div class="row"><h3>${esc(r.unitNo)}</h3>${r.pct === 100 ? badge(true, 'Lengkap') : `<span class="badge b-pend">${r.total - r.installed} pending</span>`}</div>
+      <div class="m">${fmtDate(r.date)} \u00B7 oleh ${esc(r.createdBy)}</div>
+      <div class="prog"><i style="width:${r.pct}%"></i></div><div class="m">${r.installed}/${r.total} device terpasang (${r.pct}%)</div>
+      <button class="btn sm" data-id="${r.id}" style="align-self:flex-start">Detail</button></div>`).join('')
+      || '<div class="card empty" style="grid-column:1/-1">Belum ada data instalasi. Mulai dari menu Input Data Instalasi.</div>';
+  };
+  draw();
+  $('#q').oninput = draw;
+  $('#list').onclick = e => {
+    const b = e.target.closest('button');
+    if (b) detail(rows.find(r => r.id === b.dataset.id));
+  };
+
+  function detail(r) {
+    const o = modal(`<h3>Unit ${esc(r.unitNo)}</h3>
+      <p style="color:var(--mut);margin-top:-8px">${fmtDate(r.date)} \u00B7 ${esc(r.createdBy)} \u00B7 ${r.pct}% terpasang</p>
+      <div class="card tw"><table style="min-width:480px"><thead><tr><th>Device</th><th>Status</th><th>Serial Number</th><th>Foto</th></tr></thead><tbody>
+      ${r.details.map(x => `<tr><td>${esc(x.name)}</td><td><span class="badge ${x.status === 'Installed' ? 'b-ok' : 'b-pend'}">${x.status}</span></td><td>${esc(x.sn) || '-'}</td>
+        <td>${x.photo ? `<a href="${photoFull(x.photo)}" target="_blank" rel="noopener"><img src="${photoThumb(x.photo)}" alt="Foto ${esc(x.name)}" style="width:56px;height:56px;object-fit:cover;border-radius:6px"></a>` : '-'}</td></tr>`).join('')}
+      </tbody></table></div>
+      <p><b>Remarks:</b> ${esc(r.remarks) || '-'}</p>
+      <h3 style="margin:14px 0 8px;font-size:18px">Riwayat Penggantian</h3><div id="hs"><div class="loading" style="padding:14px">Memuat...</div></div>
+      <div class="ft">${S.user.role === 'Admin' ? '<button class="btn dng" id="dl">Hapus</button>' : ''}<button class="btn" id="pd">Unduh PDF</button>
+      ${isViewer() ? '' : '<button class="btn" id="rp">Ganti Perangkat</button><button class="btn" id="ed">Edit</button>'}<button class="btn pri" id="cl">Tutup</button></div>`, true);
+    const q = s => o.querySelector(s);
+    call('listReplacements', { unitId: r.unitId }).then(l => { q('#hs').innerHTML = histHtml(l, false); })
+      .catch(e => { q('#hs').textContent = 'Gagal memuat riwayat.'; fail(e); });
+    q('#cl').onclick = () => o.remove();
+    q('#pd').onclick = async e => {
+      const b = e.currentTarget;
+      b.disabled = true; b.textContent = 'Membuat PDF...';
+      try { pdfModal(await call('generateReport', { scope: 'unit', unitId: r.unitId, detail: true, photos: false, history: true })); }
+      catch (x) { fail(x); }
+      b.disabled = false; b.textContent = 'Unduh PDF';
+    };
+    if (q('#rp')) q('#rp').onclick = () => replaceModal(r, async () => {
+      try { rows = await call('listInstalls'); draw(); o.remove(); const nr = rows.find(x => x.id === r.id); if (nr) detail(nr); }
+      catch (e) { fail(e); }
+    });
+    if (q('#ed')) q('#ed').onclick = () => { o.remove(); S.pre = r.unitId; go('input'); };
+    if (q('#dl')) q('#dl').onclick = async () => {
+      if (await confirmBox(`Hapus data instalasi unit ${r.unitNo}?`)) {
+        try { await call('deleteInstall', { id: r.id }); o.remove(); toast('Data dihapus'); go('installs'); } catch (x) { fail(x); }
+      }
+    };
+  }
+};
+
+/* ---------- Riwayat Penggantian (semua unit) ---------- */
+PAGES.history = async () => {
+  const rows = await call('listReplacements');
+  $('#main').innerHTML = '<div class="bar"><input class="inp" id="q" placeholder="Cari unit / device / serial number..." aria-label="Cari">' +
+    '<input class="inp" type="date" id="df" style="max-width:170px" aria-label="Dari tanggal"><input class="inp" type="date" id="dt" style="max-width:170px" aria-label="Sampai tanggal"></div><div class="grid g2" id="hl"></div>';
+  const draw = () => {
+    const q = $('#q').value.toLowerCase(), f = $('#df').value, t = $('#dt').value;
+    const l = rows.filter(h => (!q || [h.unitNo, h.deviceName, h.oldSN, h.newSN, h.reason].join(' ').toLowerCase().includes(q)) &&
+      (!f || h.date >= f) && (!t || h.date <= t));
+    $('#hl').innerHTML = histHtml(l, true);
+  };
+  draw();
+  ['#q', '#df', '#dt'].forEach(s => $(s).oninput = draw);
+};
+
+/* ---------- Export Report (PDF + Excel) ---------- */
+PAGES.report = async () => {
+  const fd = await call('formData'), done = new Set(fd.doneUnitIds);
+  const units = fd.units.filter(u => done.has(u.id));
+  if (!units.length) {
+    $('#main').innerHTML = '<div class="card empty">Belum ada data instalasi untuk dilaporkan. Isi dulu lewat menu Input Data Instalasi.</div>';
+    return;
+  }
+  $('#main').innerHTML =
+    '<div class="card" style="max-width:640px"><h3 style="margin-bottom:10px">Export PDF</h3>' +
+    '<label class="f">Cakupan laporan<select class="inp" id="rs"><option value="all">Semua unit (rekap)</option><option value="unit">Satu unit</option></select></label>' +
+    '<div id="ru" class="hide"><label class="f">Unit<select class="inp" id="ruu">' + units.map(u => '<option value="' + u.id + '">' + esc(u.unitNo) + (u.type ? ' \u00B7 ' + esc(u.type) : '') + '</option>').join('') + '</select></label></div>' +
+    '<div id="rd" class="grid g2"><label class="f">Dari tanggal instalasi<input class="inp" type="date" id="rf"></label><label class="f">Sampai tanggal<input class="inp" type="date" id="rt"></label></div>' +
+    '<label class="chk"><input type="checkbox" id="c1">Sertakan detail per unit (device &amp; serial number)</label>' +
+    '<label class="chk"><input type="checkbox" id="c2">Sertakan foto instalasi (maks. 30 foto per laporan)</label>' +
+    '<label class="chk"><input type="checkbox" id="c3" checked>Sertakan riwayat penggantian perangkat</label>' +
+    '<p class="note2">Pembuatan PDF memakan waktu sekitar 10\u201360 detik, lebih lama jika memuat foto.</p>' +
+    '<button class="btn pri" id="gen" style="width:100%;padding:13px">Buat PDF</button><div id="rr" style="margin-top:12px"></div></div>' +
+    '<div class="card" style="max-width:640px"><h3 style="margin-bottom:10px">Export Excel</h3>' +
+    '<p class="note2">Berisi sheet Detail Instalasi (satu baris per unit) dan Riwayat Penggantian.</p>' +
+    '<div class="grid g2"><label class="f">Dari tanggal instalasi<input class="inp" type="date" id="xf"></label><label class="f">Sampai tanggal<input class="inp" type="date" id="xt"></label></div>' +
+    '<label class="chk"><input type="checkbox" id="xh" checked>Sertakan sheet Riwayat Penggantian</label>' +
+    '<button class="btn pri" id="xgen" style="width:100%;padding:13px">Buat Excel</button><div id="xr" style="margin-top:12px"></div></div>';
+
+  function sync() {
+    const one = $('#rs').value === 'unit';
+    $('#ru').classList.toggle('hide', !one);
+    $('#rd').classList.toggle('hide', one);
+    if (one) $('#c1').checked = true;
+    $('#c1').disabled = one;
+    if (!$('#c1').checked) $('#c2').checked = false;
+    $('#c2').disabled = !$('#c1').checked;
+  }
+  $('#rs').onchange = sync; $('#c1').onchange = sync; sync();
+
+  $('#gen').onclick = async () => {
+    const b = $('#gen'), one = $('#rs').value === 'unit';
+    b.disabled = true; b.textContent = 'Membuat PDF... mohon tunggu'; $('#rr').innerHTML = '';
+    try {
+      const r = await call('generateReport', { scope: $('#rs').value, unitId: one ? $('#ruu').value : '',
+        from: $('#rf').value, to: $('#rt').value, detail: $('#c1').checked, photos: $('#c2').checked, history: $('#c3').checked });
+      $('#rr').innerHTML = '<div class="card" style="margin:0"><b>Laporan siap</b><div class="note2" style="margin-bottom:10px">' + pdfInfo(r) + '</div><div class="bar" style="margin:0">' + pdfLinks(r) + '</div></div>';
+    } catch (x) { fail(x); }
+    b.disabled = false; b.textContent = 'Buat PDF';
+  };
+
+  $('#xgen').onclick = async () => {
+    const b = $('#xgen');
+    b.disabled = true; b.textContent = 'Membuat Excel... mohon tunggu'; $('#xr').innerHTML = '';
+    try {
+      const r = await call('generateExcel', { from: $('#xf').value, to: $('#xt').value, history: $('#xh').checked });
+      const u = xlsxUrl(r);
+      $('#xr').innerHTML = '<b>Excel siap</b><div class="note2" style="margin-bottom:10px">' + esc(r.name) + ' \u00B7 ' + kb(r) + ' \u00B7 ' + r.units + ' unit' +
+        (r.withHist ? ' \u00B7 ' + r.repl + ' penggantian' : '') + '</div><a class="btn pri" href="' + u + '" download="' + esc(r.name) + '">Unduh Excel</a>';
+    } catch (x) { fail(x); }
+    b.disabled = false; b.textContent = 'Buat Excel';
+  };
+};
+
+/* =====================================================================
+   BOOT
+===================================================================== */
+(async () => {
+  loadProjects();
+  if (S.token) {
+    try { S.user = await call('me'); return start(); }
+    catch (e) { S.token = null; }
+  }
+})();
+
+</script>
+
+<script>
+/* ===== PATCH PANDUAN (WIKI) ===== Hapus blok ini untuk kembali ke versi sebelumnya. */
+(function () {
+  if (typeof PAGES === 'undefined' || typeof MENU === 'undefined') return;
+  const isRealAdmin = () => S.user && !S.user.realRole && S.user.role === 'Admin';
+  let lastCur = null;
+
+  /* CSS */
+  const st = document.createElement('style');
+  st.textContent =
+    '.wiki{display:grid;grid-template-columns:260px 1fr;gap:14px;align-items:start}' +
+    '.wtoc{padding:8px;position:sticky;top:76px;margin:0}' +
+    '.wtoc button{display:block;width:100%;text-align:left;padding:10px 12px;border:0;background:none;border-radius:8px;cursor:pointer}' +
+    '.wtoc button:hover{background:#f0f2ec}.wtoc button.on{background:var(--amber);font-weight:600}' +
+    '.wbody{margin:0}.wbody h2{font-size:26px;margin-bottom:6px}.wbody h3{font-size:19px;margin:18px 0 6px}.wbody h4{font-size:16px;margin:14px 0 4px}' +
+    '.wbody p{margin:8px 0}.wbody ul,.wbody ol{margin:8px 0;padding-left:24px}.wbody li{margin:3px 0}' +
+    '.wbody code,.md code{background:#eef0ea;padding:1px 6px;border-radius:4px;font-size:14px}' +
+    '.gact{float:right;display:flex;gap:6px}.gmeta{color:var(--mut);font-size:13px;margin-bottom:8px}' +
+    'details.gd{border:1px solid var(--line);border-radius:8px;margin-bottom:8px;padding:0 12px}' +
+    'details.gd summary{cursor:pointer;padding:11px 0;font-weight:600}details.gd[open] summary{border-bottom:1px solid var(--line);margin-bottom:6px}' +
+    '@media(max-width:800px){.wiki{grid-template-columns:1fr}.wtoc{position:static}}';
+  document.head.appendChild(st);
+
+  /* Mini-markdown: semua teks di-escape dulu, baru diberi format */
+  const inl = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`(.+?)`/g, '<code>$1</code>');
+  function md(src) {
+    const out = []; let list = null;
+    const close = () => { if (list) { out.push('</' + list + '>'); list = null; } };
+    String(src || '').split('\n').forEach(raw => {
+      const l = raw.replace(/\s+$/, ''); let m;
+      if (!l.trim()) return close();
+      if ((m = /^(#{2,3})\s+(.*)/.exec(l))) { close(); const n = m[1].length + 1; out.push('<h' + n + '>' + inl(m[2]) + '</h' + n + '>'); return; }
+      if ((m = /^[-*]\s+(.*)/.exec(l))) { if (list !== 'ul') { close(); out.push('<ul>'); list = 'ul'; } out.push('<li>' + inl(m[1]) + '</li>'); return; }
+      if ((m = /^\d+[.)]\s+(.*)/.exec(l))) { if (list !== 'ol') { close(); out.push('<ol>'); list = 'ol'; } out.push('<li>' + inl(m[1]) + '</li>'); return; }
+      close(); out.push('<p>' + inl(l) + '</p>');
+    });
+    close();
+    return out.join('');
+  }
+
+  /* Menu baru */
+  MENU.push(['guide', 'Panduan', '\uD83D\uDCD6']);
+    /* Panduan tidak tampil di sidebar; dibuka lewat ikon Customer Service di dekat akun.
+     Entri MENU di atas tetap diperlukan agar go('guide') dikenali. */
+  const st2 = document.createElement('style');
+  st2.textContent =
+    '.merow{display:flex;gap:8px;align-items:center;margin-top:8px}' +
+    '.me .merow button{margin-top:0}' +
+    '#helpbtn{display:flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0}' +
+    '#helpbtn:hover{background:#2e373d}' +
+    '#helpbtn.on{background:var(--amber);border-color:var(--amber);color:#1d2327}';
+  document.head.appendChild(st2);
+
+  const meBox = document.querySelector('#side .me'), loBtn = document.getElementById('lo');
+  let hb = null;
+  if (meBox && loBtn) {
+    const row = document.createElement('div'); row.className = 'merow';
+    meBox.insertBefore(row, loBtn); row.appendChild(loBtn);   // tombol Keluar dipindah ke baris ini, fungsinya tetap
+    hb = document.createElement('button');
+    hb.type = 'button'; hb.id = 'helpbtn'; hb.title = 'Panduan'; hb.setAttribute('aria-label', 'Buka Panduan');
+    hb.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="2.5" y="13" width="4" height="6" rx="1.5"/><rect x="17.5" y="13" width="4" height="6" rx="1.5"/><path d="M19.5 19c0 1.7-1.8 3-4.5 3h-2"/></svg>';
+    hb.onclick = () => go('guide');
+    row.appendChild(hb);
+  }
+
+  /* Hapus tombol Panduan dari daftar menu setiap kali menu dirender */
+  const _start0 = start;
+  start = function () {
+    _start0();
+    const b = document.querySelector('#menu button[data-p="guide"]');
+    if (b) b.remove();
+  };
+
+  /* Sorot ikon saat halaman Panduan sedang terbuka */
+  const _go0 = go;
+  go = function (id) { const r = _go0(id); if (hb) hb.classList.toggle('on', id === 'guide'); return r; };
+
+  /* Tombol bantuan di halaman login */
+  const lf = document.getElementById('lf');
+  if (lf) {
+    const lh = document.createElement('button');
+    lh.type = 'button'; lh.className = 'btn'; lh.id = 'lh';
+    lh.style.cssText = 'width:100%;margin-top:10px'; lh.textContent = 'Butuh bantuan?';
+    lf.appendChild(lh);
+    lh.onclick = async () => {
+      lh.disabled = true;
+      try {
+        const list = await call('publicGuide');
+        const o = modal('<h3>Bantuan</h3>' + (list.length
+          ? list.map((g, i) => '<details class="gd"' + (i === 0 ? ' open' : '') + '><summary>' + esc(g.title) + '</summary><div class="wbody">' + md(g.body) + '</div></details>').join('')
+          : '<p class="empty">Belum ada panduan.</p>') +
+          '<div class="ft"><button class="btn pri" id="hc">Tutup</button></div>', true);
+        o.querySelector('#hc').onclick = () => o.remove();
+      } catch (e) { toast(e.message, true); }
+      lh.disabled = false;
+    };
+  }
+  
+    /* Tombol Developer di halaman login: tautan ke dokumentasi developer */
+  const DEV_DOC_URL = 'https://github.com/rusyantonet/installation-management-system';
+  if (lf && DEV_DOC_URL) {
+    const dv = document.createElement('a');
+    dv.className = 'btn'; dv.id = 'dv';
+    dv.href = DEV_DOC_URL; dv.target = '_blank'; dv.rel = 'noopener noreferrer';
+    dv.style.cssText = 'display:block;width:100%;margin-top:8px;font-size:14px;color:var(--mut)';
+    dv.textContent = 'Developer';
+    lf.appendChild(dv);
+  }
+
+  /* Halaman Panduan */
+  PAGES.guide = async () => {
+    const list = await call('listGuide');
+    const adm = isRealAdmin();
+    let cur = lastCur && list.some(g => g.id === lastCur) ? lastCur : (list.length ? list[0].id : null), q = '';
+
+    $('#main').innerHTML =
+      '<div class="bar"><input class="inp" id="gq" placeholder="Cari panduan..." aria-label="Cari panduan">' +
+      (adm ? '<button class="btn pri" id="gadd">+ Tambah Artikel</button>' : '') + '</div>' +
+      '<div class="wiki"><div class="card wtoc" id="gt"></div><div class="card wbody" id="gb"></div></div>';
+
+    const draw = () => {
+      const k = q.toLowerCase();
+      const vis = list.filter(g => !k || (g.title + ' ' + g.body).toLowerCase().includes(k));
+      if (!vis.some(g => g.id === cur)) cur = vis.length ? vis[0].id : null;
+      $('#gt').innerHTML = vis.map(g => '<button data-i="' + g.id + '" class="' + (g.id === cur ? 'on' : '') + '">' + esc(g.title) +
+        (g.active ? '' : ' <small>(draft)</small>') + '</button>').join('') || '<div class="empty">Tidak ada panduan.</div>';
+      const g = list.find(x => x.id === cur);
+          $('#gb').innerHTML = g
+        ? (adm ? '<div class="gact"><button class="btn sm" data-ed="1">Edit</button><button class="btn sm dng" data-del="1">Hapus</button></div>' : '') +
+          '<h2>' + esc(g.title) + '</h2>' +
+          (adm && !g.active ? '<div class="gmeta">Draft (disembunyikan dari semua orang)</div>' : '') + md(g.body)
+        : '<div class="empty">' + (adm ? 'Belum ada artikel. Klik Tambah Artikel.' : 'Belum ada panduan untuk role Anda.') + '</div>';
+    };
+    draw();
+    $('#gq').oninput = e => { q = e.target.value; draw(); };
+    $('#gt').onclick = e => { const b = e.target.closest('button'); if (b) { cur = lastCur = b.dataset.i; draw(); } };
+    if (adm) {
+      $('#gadd').onclick = () => form(null);
+      $('#gb').onclick = async e => {
+        const b = e.target.closest('button'); if (!b) return;
+        const g = list.find(x => x.id === cur); if (!g) return;
+        if (b.dataset.ed) return form(g);
+        if (b.dataset.del && await confirmBox('Hapus artikel "' + g.title + '"? Tindakan ini tidak bisa dibatalkan.')) {
+          try { await call('deleteGuide', { id: g.id }); lastCur = null; toast('Artikel dihapus'); go('guide'); } catch (x) { fail(x); }
+        }
+      };
+    }
+
+    function form(g) {
+      const v = g || { title: '', body: '', roles: ['Manager', 'Engineer', 'Viewer'], public: false, active: true, sort: '' };
+      const o = modal('<h3>' + (g ? 'Edit' : 'Tambah') + ' Artikel Panduan</h3><form id="gf">' +
+        '<label class="f">Judul<input class="inp" name="title" maxlength="120" value="' + esc(v.title) + '" required></label>' +
+        '<label class="f">Isi<textarea class="inp" name="body" style="min-height:280px;font-family:monospace" required>' + esc(v.body) + '</textarea></label>' +
+        '<p class="note2">Format: <code>## Judul bagian</code>, <code>- poin</code>, <code>1. langkah</code>, <code>**tebal**</code>, <code>`kode`</code>. Pisahkan paragraf dengan baris kosong.</p>' +
+        // '<div class="f">Dapat dibaca oleh (Admin selalu bisa)' + ['Manager', 'Engineer', 'Viewer'].map(r =>
+        //   '<label class="chk" style="margin:8px 0 0;font-weight:400"><input type="checkbox" name="r" value="' + r + '"' +
+        //   (v.roles.indexOf(r) >= 0 ? ' checked' : '') + '>' + r + '</label>').join('') + '</div>' +
+        '<label class="f">Urutan<input class="inp" type="number" name="sort" value="' + esc(v.sort) + '" placeholder="Kosong = paling akhir"></label>' +
+        // '<label class="chk"><input type="checkbox" name="pub"' + (v.public ? ' checked' : '') + '>Tampilkan di halaman login (bisa dibaca tanpa login)</label>' +
+        '<p class="note2" style="background:var(--pendbg);color:var(--pend);padding:10px 12px;border-radius:8px">Semua artikel aktif dapat dibaca siapa saja di halaman login, tanpa login. Jangan menulis username, password, ID file, tautan internal, atau data sensitif lain. Untuk menyimpan draft, matikan opsi Aktif.</p>' +
+        '<p class="note2" style="margin-top:-6px">Artikel publik bisa dibaca siapa saja yang membuka aplikasi. Jangan menulis password, ID file, atau detail teknis internal.</p>' +
+        '<label class="chk"><input type="checkbox" name="act"' + (v.active ? ' checked' : '') + '>Aktif (jika dimatikan, artikel menjadi draft dan hanya terlihat oleh Admin)</label>' +
+        '<div id="gv" class="card wbody hide"></div>' +
+        '<div class="ft"><button type="button" class="btn" id="gp">Pratinjau</button><button type="button" class="btn" id="gx">Batal</button><button class="btn pri">Simpan</button></div></form>', true);
+      const f = s => o.querySelector(s);
+      f('#gx').onclick = () => o.remove();
+      f('#gp').onclick = () => { const bx = f('#gv'); bx.innerHTML = md(f('[name=body]').value); bx.classList.toggle('hide'); };
+      f('#gf').onsubmit = async e => {
+        e.preventDefault();
+        const btn = f('.pri'); btn.disabled = true;
+        try {
+          const id = await call('saveGuide', {
+            id: g ? g.id : '', title: f('[name=title]').value, body: f('[name=body]').value,
+            sort: f('[name=sort]').value, active: f('[name=act]').checked
+          });
+          lastCur = id; o.remove(); toast('Artikel disimpan'); go('guide');
+        } catch (x) { fail(x); btn.disabled = false; }
+      };
+    }
+  };
+})();
+</script>
+
+<script>
+/* ===== PATCH ROLE (Manager + akses per project) =====
+   Hapus blok ini untuk kembali ke checkpoint sebelumnya. */
+(function () {
+  if (typeof PAGES === 'undefined' || typeof CRUD === 'undefined') return;
+  const realRole = () => (S.user && (S.user.realRole || S.user.role)) || '';
+  const isRealAdmin = () => realRole() === 'Admin';
+
+  /* Di tampilan, Manager diperlakukan seperti Admin (hampir semua menu, tombol hapus instalasi).
+     Hak akses sebenarnya tetap dicek server berdasarkan role asli. */
+  const _start = start;
+  start = function () {
+    if (S.user && S.user.role === 'Manager') { S.user.realRole = 'Manager'; S.user.role = 'Admin'; }
+    _start();
+    if (S.user.realRole) {
+      $('#mr').textContent = S.user.realRole + (S.user.projectName ? ' \u00B7 ' + S.user.projectName : '');
+      if (S.user.realRole === 'Manager') {   // Master Project khusus Admin
+        const b = document.querySelector('#menu button[data-p="projects"]');
+        if (b) b.remove();
+      }
+    }
+  };
+
+  /* Halaman User Management baru (menggantikan CRUD generik) */
+  delete CRUD.users;
+  PAGES.users = async () => {
+    const [rows, pjs] = await Promise.all([call('listUsers'), call('assignableProjects')]);
+    const adm = isRealAdmin(), me = S.user;
+    const peer = r => r.role === 'Admin' || r.role === 'Manager';
+    const canEdit = r => adm || r.id === me.id || !peer(r);
+    const canDel = r => r.id !== me.id && (adm || !peer(r));
+
+    $('#main').innerHTML = '<div class="bar"><input class="inp" id="q" placeholder="Cari user..." aria-label="Cari"><button class="btn pri" id="add">+ Tambah User</button></div>' +
+      '<div class="card tw"><table><thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Project</th><th>Status</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>';
+
+    const draw = () => {
+      const k = $('#q').value.toLowerCase();
+      const l = rows.filter(r => [r.username, r.name, r.role, r.projects].join(' ').toLowerCase().includes(k));
+      $('#tb').innerHTML = l.map(r => '<tr><td>' + esc(r.username) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.role) + '</td><td>' +
+        (r.role === 'Admin' ? 'Semua project' : (esc(r.projects) || '-')) + '</td><td>' + badge(r.active) + '</td><td class="acts">' +
+        (canEdit(r) ? '<button class="btn sm" data-e="' + r.id + '">Edit</button>' : '') +
+        (canDel(r) ? '<button class="btn sm dng" data-d="' + r.id + '">' + (adm ? 'Hapus' : 'Keluarkan') + '</button>' : '') +
+        '</td></tr>').join('') || '<tr><td colspan="6" class="empty">Belum ada user.</td></tr>';
+    };
+    draw();
+    $('#q').oninput = draw;
+    $('#add').onclick = () => form(null);
+    $('#tb').onclick = async e => {
+      const b = e.target.closest('button'); if (!b) return;
+      const r = rows.find(x => x.id === (b.dataset.e || b.dataset.d));
+      if (b.dataset.e) return form(r);
+      const msg = adm ? 'Hapus user "' + r.username + '"? Tindakan ini tidak bisa dibatalkan.'
+                      : 'Keluarkan user "' + r.username + '" dari project ini?';
+      if (await confirmBox(msg)) {
+        try { await call('deleteUser', { id: r.id }); toast('Berhasil'); go('users'); } catch (x) { fail(x); }
+      }
+    };
+
+    function form(r) {
+      const self = !!r && r.id === me.id;
+      const roles = adm ? ['Engineer', 'Viewer', 'Manager', 'Admin'] : (self ? [me.realRole || me.role] : ['Engineer', 'Viewer']);
+      const v = r || { username: '', name: '', role: 'Engineer', active: true, projectIds: [me.projectId] };
+      const o = modal('<h3>' + (r ? 'Edit' : 'Tambah') + ' User</h3><form id="mf">' +
+        '<label class="f">Username<input class="inp" name="username" value="' + esc(v.username) + '" required></label>' +
+        '<label class="f">Nama Lengkap<input class="inp" name="name" value="' + esc(v.name) + '" required></label>' +
+        '<label class="f">Role<select class="inp" name="role"' + (self ? ' disabled' : '') + '>' +
+          roles.map(x => '<option' + (v.role === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select></label>' +
+        '<label class="f">Password' + (r ? ' (kosongkan jika tidak diubah)' : '') +
+          '<input class="inp" type="password" name="password" autocomplete="new-password" minlength="6"' + (r ? '' : ' required') + '></label>' +
+        '<div id="pjb" class="f">Akses Project' + (pjs.length ? pjs.map(x =>
+          '<label class="chk" style="margin:8px 0 0;font-weight:400"><input type="checkbox" name="pj" value="' + esc(x.id) + '"' +
+          (v.projectIds.indexOf(x.id) >= 0 ? ' checked' : '') + (self && !adm ? ' disabled' : '') + '>' +
+          esc(x.name) + (x.active ? '' : ' (nonaktif)') + '</label>').join('') : '<div class="note2">Belum ada project.</div>') + '</div>' +
+        '<label class="chk"><input type="checkbox" name="active"' + (v.active ? ' checked' : '') + (self ? ' disabled' : '') + '>User aktif</label>' +
+        '<div class="ft"><button type="button" class="btn" id="cx">Batal</button><button class="btn pri">Simpan</button></div></form>');
+      const q = s => o.querySelector(s);
+      const sync = () => q('#pjb').classList.toggle('hide', q('[name=role]').value === 'Admin');
+      q('[name=role]').onchange = sync; sync();
+      q('#cx').onclick = () => o.remove();
+      q('#mf').onsubmit = async e => {
+        e.preventDefault();
+        const btn = q('.pri');
+        const p = {
+          id: r ? r.id : '', username: q('[name=username]').value, name: q('[name=name]').value,
+          role: q('[name=role]').value, password: q('[name=password]').value, active: q('[name=active]').checked,
+          projectIds: [].slice.call(o.querySelectorAll('input[name=pj]:checked')).map(x => x.value)
+        };
+        btn.disabled = true;
+        try { await call('saveUser', p); o.remove(); toast('User disimpan'); go('users'); }
+        catch (x) { fail(x); btn.disabled = false; }
+      };
+    }
+  };
+})();
+</script>
+<script>
+/* ===== PATCH IMPORT DATA (khusus Admin) ===== Hapus blok ini untuk membatalkan. */
+(function () {
+  if (typeof PAGES === 'undefined' || typeof MENU === 'undefined') return;
+
+  const ui = MENU.findIndex(m => m[0] === 'users');
+  MENU.splice(ui < 0 ? MENU.length : ui + 1, 0, ['import', 'Import Data', '\uD83D\uDCE5', 1]);
+
+  /* Manager tampil sebagai Admin di frontend (lihat patch Role): sembunyikan menu ini untuk Manager */
+  const _start = start;
+  start = function () {
+    _start();
+    if (S.user && S.user.realRole === 'Manager') {
+      const b = document.querySelector('#menu button[data-p="import"]');
+      if (b) b.remove();
+    }
+  };
+
+  function parseCsv(t) {
+    t = String(t).replace(/^\uFEFF/, '');
+    const first = t.split(/\r?\n/)[0] || '';
+    const cnt = c => first.split(c).length - 1;
+    const d = cnt(';') > cnt(',') ? ';' : (cnt('\t') > cnt(',') ? '\t' : ',');
+    const out = []; let row = [], cur = '', q = false;
+    for (let i = 0; i < t.length; i++) {
+      const c = t[i];
+      if (q) {
+        if (c === '"') { if (t[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+        else cur += c;
+      } else if (c === '"') q = true;
+      else if (c === d) { row.push(cur); cur = ''; }
+      else if (c === '\n' || c === '\r') {
+        if (c === '\r' && t[i + 1] === '\n') i++;
+        row.push(cur); cur = ''; out.push(row); row = [];
+      } else cur += c;
+    }
+    if (cur !== '' || row.length) { row.push(cur); out.push(row); }
+    return out.filter(r => r.some(x => String(x).trim() !== ''));
+  }
+  const csvCell = x => { x = String(x == null ? '' : x); return /[";\n\r]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
+
+  PAGES.import = async () => {
+    const fd = await call('formData');
+    const devs = fd.devices;
+    if (!devs.length) { $('#main').innerHTML = '<div class="card empty">Master Device project ini belum diisi. Isi dulu di menu Master Device.</div>'; return; }
+    let type = 'install', rows = [], pre = [], checked = null, label = '', tplUrl = '';
+
+    $('#main').innerHTML =
+      '<div class="card"><h3 style="margin-bottom:8px">1. Jenis data dan template</h3>' +
+      '<label class="f">Jenis data<select class="inp" id="imt"><option value="install">Data Instalasi (satu baris per unit)</option><option value="repl">Riwayat Penggantian</option></select></label>' +
+      '<p class="note2" id="imh"></p><div id="imd"></div></div>' +
+      '<div class="card"><h3 style="margin-bottom:8px">2. Opsi</h3><div id="imo"></div></div>' +
+      '<div class="card"><h3 style="margin-bottom:8px">3. Pilih file CSV</h3>' +
+      '<input type="file" id="imf" accept=".csv,.txt,text/csv"><p class="note2" id="imi"></p>' +
+      '<div class="bar" style="margin:0"><button class="btn" id="imc" disabled>Periksa data (simulasi)</button><button class="btn pri" id="imr" disabled>Impor sekarang</button></div></div>' +
+      '<div id="imx"></div>';
+
+    const sync = () => {
+      $('#imc').disabled = !rows.length;
+      $('#imr').disabled = !(checked && checked.ok > 0 && !checked.aborted);
+    };
+    const reset = () => { rows = []; pre = []; checked = null; $('#imx').innerHTML = ''; $('#imi').textContent = ''; sync(); };
+
+    function drawType() {
+      let head;
+      if (type === 'install') {
+        head = ['Nomor Unit', 'Tipe', 'Catatan Unit', 'Tanggal', 'Remarks'];
+        devs.forEach(d => {
+          head.push(d.name + ' - Status');
+          if (d.needSN) head.push(d.name + ' - SN');
+          if (d.needPhoto) head.push(d.name + ' - Foto');
+        });
+        $('#imh').innerHTML = 'Satu baris per unit. <b>Status</b>: Installed atau Pending (kosong dianggap Pending). <b>Tanggal</b>: yyyy-mm-dd atau dd/mm/yyyy. Kolom <b>- SN</b> diisi untuk device yang butuh serial number. Kolom <b>- Foto</b> (opsional) berisi ID atau tautan file Google Drive.';
+        $('#imo').innerHTML =
+          '<label class="chk"><input type="checkbox" id="oc" checked>Buat unit baru otomatis jika nomor unit belum ada di Master Unit</label>' +
+          '<label class="f">Jika unit sudah punya data instalasi<select class="inp" id="oe"><option value="skip">Lewati (data lama tidak diubah)</option><option value="update">Perbarui (timpa dengan data import)</option></select></label>' +
+          '<label class="chk"><input type="checkbox" id="os">Izinkan serial number kosong untuk device Installed (data lama tanpa SN)</label>' +
+          '<p class="note2">Mode Perbarui menimpa data lama dan tidak ikut dibatalkan oleh tombol Batalkan. Unit tanpa SN harus dilengkapi saat diedit lewat aplikasi.</p>';
+      } else {
+        head = ['Nomor Unit', 'Device', 'Tanggal', 'SN Lama', 'SN Baru', 'Alasan', 'Catatan'];
+        $('#imh').innerHTML = 'Satu baris per kejadian penggantian. <b>Alasan</b>: Rusak, Hilang, Upgrade, atau Lainnya. Nama <b>Device</b> harus sama persis dengan Master Device. Unit harus sudah ada. Data yang sama persis dengan yang sudah tercatat akan dilewati.';
+        $('#imo').innerHTML = '<p class="note2" style="margin:0">Import riwayat hanya menambah catatan di Riwayat Penggantian. Serial number pada data instalasi unit tidak diubah.</p>';
+      }
+      if (tplUrl) URL.revokeObjectURL(tplUrl);
+      tplUrl = URL.createObjectURL(new Blob(['\uFEFF' + head.map(csvCell).join(';') + '\r\n'], { type: 'text/csv' }));
+      $('#imd').innerHTML = '<a class="btn" href="' + tplUrl + '" download="template_import_' + (type === 'install' ? 'instalasi' : 'penggantian') + '.csv">Unduh template (' + esc(S.user.projectName || 'project') + ')</a>';
+    }
+    drawType();
+    $('#imt').onchange = e => { type = e.target.value; $('#imf').value = ''; reset(); drawType(); };
+    $('#imo').addEventListener('change', () => { checked = null; $('#imx').innerHTML = ''; sync(); });
+
+    const opts = () => ({ createUnits: !!$('#oc') && $('#oc').checked, onExisting: $('#oe') ? $('#oe').value : 'skip', allowNoSN: !!$('#os') && $('#os').checked });
+
+    $('#imf').onchange = e => {
+      const f = e.target.files[0]; reset();
+      if (!f) return;
+      if (f.size > 5 * 1024 * 1024) return toast('File terlalu besar (maksimal 5 MB)', true);
+      const fr = new FileReader();
+      fr.onload = () => load(String(fr.result), f.name);
+      fr.onerror = () => toast('Gagal membaca file', true);
+      fr.readAsText(f, 'utf-8');
+    };
+    function load(text, name) {
+      const t = parseCsv(text), bad = m => { $('#imi').innerHTML = '<span style="color:var(--bad)">' + m + '</span>'; };
+      if (t.length < 2) return bad('File kosong atau hanya berisi header.');
+      if (t.length - 1 > 2000) return bad('Maksimal 2000 baris per file. Pecah file menjadi beberapa bagian.');
+      const headers = t[0].map(x => String(x).trim()), low = headers.map(x => x.toLowerCase());
+      const need = type === 'install' ? ['nomor unit', 'tanggal'] : ['nomor unit', 'device', 'tanggal', 'alasan'];
+      const miss = need.filter(x => low.indexOf(x) < 0);
+      if (miss.length) return bad('Kolom wajib tidak ditemukan: ' + esc(miss.join(', ')) + '. Gunakan template terbaru.');
+      if (type === 'install' && !devs.some(d => low.indexOf(String(d.name).toLowerCase() + ' - status') >= 0))
+        return bad('Tidak ada kolom status device yang cocok dengan Master Device project ini. Unduh template terbaru.');
+      rows = t.slice(1).map((r, i) => { const v = {}; headers.forEach((h, j) => { v[h] = r[j] == null ? '' : r[j]; }); return { n: i + 2, v: v }; });
+      pre = [];
+      if (type === 'install') {
+        const key = headers[low.indexOf('nomor unit')], seen = {};
+        rows = rows.filter(r => {
+          const k = String(r.v[key]).trim().toLowerCase();
+          if (!k) return true;
+          if (seen[k]) { pre.push({ n: r.n, msg: 'Unit ' + r.v[key] + ' muncul lebih dari sekali di file (baris pertama dipakai)' }); return false; }
+          seen[k] = 1; return true;
+        });
+      }
+      $('#imi').textContent = name + ': ' + (rows.length + pre.length) + ' baris data terbaca. Klik Periksa data untuk simulasi.';
+      sync();
+    }
+
+    async function run(mode) {
+      const o = opts();
+      const out = { total: 0, ok: 0, skipped: 0, errors: pre.slice(), warns: [], units: 0, installs: 0, updated: 0, repl: 0, newUnitIds: [], unknownCols: [] };
+      const lock = x => ['imc', 'imr', 'imf', 'imt'].forEach(id => { $('#' + id).disabled = x; });
+      lock(true);
+      try {
+        for (let i = 0; i < rows.length; i += 150) {
+          $('#imi').textContent = (mode === 'commit' ? 'Mengimpor' : 'Memeriksa') + ' baris ' + (i + 1) + '-' + Math.min(i + 150, rows.length) + ' dari ' + rows.length + '...';
+          const r = await call('importRun', { type: type, mode: mode, rows: rows.slice(i, i + 150), opts: o, label: label });
+          ['total', 'ok', 'skipped', 'units', 'installs', 'updated', 'repl'].forEach(k => { out[k] += r[k]; });
+          [].push.apply(out.errors, r.errors); [].push.apply(out.warns, r.warns); [].push.apply(out.newUnitIds, r.newUnitIds);
+          r.unknownCols.forEach(c => { if (out.unknownCols.indexOf(c) < 0) out.unknownCols.push(c); });
+        }
+      } catch (e) { fail(e); out.aborted = true; }
+      out.total += pre.length;
+      lock(false); $('#imi').textContent = '';
+      return out;
+    }
+
+    const stat = (v, l, c) => '<div class="card stat" style="margin:0"><b' + (c ? ' style="color:var(' + c + ')"' : '') + '>' + v + '</b><span>' + l + '</span></div>';
+    const tbl = arr => !arr.length ? '' :
+      '<div class="card tw" style="max-height:320px;overflow:auto;margin-top:10px"><table style="min-width:0"><thead><tr><th style="width:80px">Baris</th><th>Keterangan</th></tr></thead><tbody>' +
+      arr.slice(0, 200).map(x => '<tr><td>' + esc(x.n) + '</td><td>' + esc(x.msg) + '</td></tr>').join('') + '</tbody></table></div>' +
+      (arr.length > 200 ? '<p class="note2">Menampilkan 200 dari ' + arr.length + ' catatan.</p>' : '');
+
+    function show(out, done) {
+      const det = type === 'install'
+        ? 'Unit baru: <b>' + out.units + '</b> \u00B7 Instalasi baru: <b>' + out.installs + '</b> \u00B7 Diperbarui: <b>' + out.updated + '</b>'
+        : 'Penggantian baru: <b>' + out.repl + '</b>';
+      $('#imx').innerHTML = '<div class="card"><h3 style="margin-bottom:10px">' + (done ? 'Hasil impor' : 'Hasil pemeriksaan (belum ada data yang disimpan)') + '</h3>' +
+        '<div class="grid g4">' + stat(out.total, 'Baris diproses') + stat(out.ok, done ? 'Berhasil' : 'Valid', '--ok') + stat(out.skipped, 'Dilewati', '--pend') + stat(out.errors.length, 'Error', out.errors.length ? '--bad' : '') + '</div>' +
+        '<p style="margin:12px 0 0">' + det + '</p>' +
+        (out.aborted ? '<p class="note">Proses terhenti karena kesalahan. Sebagian data mungkin sudah masuk. Pakai Batalkan, atau ulangi dengan opsi Lewati (data yang sudah masuk tidak akan ganda).</p>' : '') +
+        (out.unknownCols.length ? '<p class="note">Kolom tidak dikenali dan diabaikan: ' + esc(out.unknownCols.join(', ')) + '</p>' : '') +
+        (out.errors.length ? '<h3 style="margin:14px 0 0;font-size:17px">Baris ditolak</h3>' + tbl(out.errors) : '') +
+        (out.warns.length ? '<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:600">Catatan (' + out.warns.length + ')</summary>' + tbl(out.warns) + '</details>' : '') +
+        (done && label ? '<p class="note2" style="margin-top:14px">Penanda batch: <b>' + esc(label) + '</b> (tampil pada kolom oleh di data instalasi).</p>' +
+          (out.ok > 0 ? '<button class="btn dng" id="imu">Batalkan import ini</button><p class="note2">Menghapus instalasi, penggantian, dan unit baru hasil import ini. Hanya tersedia selama halaman ini belum ditutup.</p>' : '') : '') +
+        '</div>';
+      const u = $('#imu');
+      if (u) u.onclick = async () => {
+        if (!(await confirmBox('Batalkan import ' + label + '? Data hasil import ini akan dihapus.'))) return;
+        try {
+          const r = await call('importUndo', { label: label, unitIds: out.newUnitIds });
+          $('#imx').innerHTML = '<div class="card">Import dibatalkan. Dihapus: ' + r.installs + ' instalasi, ' + r.repl + ' penggantian, ' + r.units + ' unit.</div>';
+        } catch (x) { fail(x); }
+      };
+    }
+
+    $('#imc').onclick = async () => { label = ''; checked = await run('check'); show(checked, false); sync(); };
+    $('#imr').onclick = async () => {
+      if (!checked || !checked.ok) return;
+      const msg = 'Impor ' + checked.ok + ' baris valid ke project "' + (S.user.projectName || '') + '"? ' + (checked.errors.length ? checked.errors.length + ' baris error akan dilewati. ' : '') + 'Pastikan Google Sheet sudah di-backup.';
+      if (!(await confirmBox(msg))) return;
+      label = 'Import ' + todayStr() + ' ' + new Date().toTimeString().slice(0, 8);
+      const out = await run('commit');
+      rows = []; pre = []; checked = null; $('#imf').value = '';
+      show(out, true); sync();
+    };
+    sync();
+  };
+})();
+</script>
+<script>
+/* ===== PWA: pendaftaran service worker + tombol "Pasang aplikasi" ===== */
+if ('serviceWorker' in navigator) window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+(function () {
+  var ev = null, b = document.getElementById('pwa');
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); ev = e; if (b) b.classList.remove('hide'); });
+  window.addEventListener('appinstalled', function () { ev = null; if (b) b.classList.add('hide'); });
+  if (b) b.onclick = function () { if (!ev) return; ev.prompt(); ev.userChoice.then(function () { ev = null; b.classList.add('hide'); }); };
+})();
+</script>
+</body>
+</html>
