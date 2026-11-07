@@ -1,4 +1,4 @@
-# Installation Management System (IMS)
+![IMS](assets/logo.png)
 
 Aplikasi web untuk mendokumentasikan instalasi perangkat pada kendaraan tambang, multi-project, dengan serial number, foto, riwayat penggantian, dan laporan.
 Berjalan di hosting cPanel biasa (PHP + MySQL), tanpa framework dan tanpa proses build.
