@@ -52,7 +52,7 @@ function setup() {
   if (!props.getProperty('SALT')) props.setProperty('SALT', Utilities.getUuid());
 
   if (!rows_('Users').length) {
-    save_('Users', { username: 'admin', name: 'Administrator', passHash: hash_('admin123'),
+    save_('Users', { username: 'ADMINISTRATOR', name: 'Administrator', passHash: hash_('CHANGE_PASSWORD'),
                      role: 'Admin', active: true, createdAt: new Date().toISOString() });
   }
 
@@ -77,7 +77,7 @@ function setup() {
   if (!rows_('Guide').length) seedGuide_();
   const ss0 = ss.getSheetByName('Sheet1') || ss.getSheetByName('Sheet 1');
   if (ss0 && ss.getSheets().length > 1) ss.deleteSheet(ss0);
-  Logger.log('Setup selesai. Login awal: admin / admin123 (segera ganti password).');
+  Logger.log('Setup selesai. Login awal: admin / CHANGE_PASSWORD (segera ganti password).');
 }
 
 /* ============ WEB APP ============ */
