@@ -270,6 +270,4 @@ ID memakai UUID (`CHAR(36)`). Foto yang disimpan lokal diberi ID berawalan `loc_
 
 Saran dan perbaikan dipersilakan lewat *issue* atau *pull request*.
 
-Lisensi: tentukan sebelum dipublikasikan (misalnya MIT) dan tambahkan berkas `LICENSE`.
-
 Dikembangkan oleh **Rusyanto**.
