@@ -15,6 +15,7 @@
 
 - [Fitur](#fitur)
 - [Arsitektur dan teknologi](#arsitektur-dan-teknologi)
+- [Flowchart](FLOWCHART.md)
 - [Struktur folder](#struktur-folder)
 - [Prasyarat](#prasyarat)
 - [Instalasi](#instalasi)
