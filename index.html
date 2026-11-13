@@ -242,8 +242,8 @@ function modal(html, wide) {
   document.body.appendChild(o);
   return o;
 }
-const confirmBox = msg => new Promise(res => {
-  const o = modal(`<h3>Konfirmasi</h3><p>${esc(msg)}</p><div class="ft"><button class="btn" id="n">Batal</button><button class="btn dng" id="y">Ya, hapus</button></div>`);
+const confirmBox = (msg, yes) => new Promise(res => {
+  const o = modal(`<h3>Konfirmasi</h3><p>${esc(msg)}</p><div class="ft"><button class="btn" id="n">Batal</button><button class="btn dng" id="y">${esc(yes || 'Ya, hapus')}</button></div>`);
   o.querySelector('#n').onclick = () => { o.remove(); res(false); };
   o.querySelector('#y').onclick = () => { o.remove(); res(true); };
 });
@@ -391,13 +391,20 @@ function pdfModal(r) {
 /* =====================================================================
    RIWAYAT PENGGANTIAN: tampilan kartu
 ===================================================================== */
-function histHtml(list, showUnit) {
+const canDelHist = () => !!S.user && S.user.role === 'Admin';   // Manager tampil sebagai Admin; server tetap mengecek peran asli
+async function delHist(h) {   // true bila terhapus
+  if (!(await confirmBox('Hapus catatan penggantian ' + h.deviceName + ' pada unit ' + h.unitNo + ' (' + fmtDate(h.date) + ')? Hanya catatan riwayat yang dihapus; serial number pada data instalasi tidak berubah.'))) return false;
+  try { await call('deleteReplacement', { id: h.id }); toast('Riwayat dihapus'); return true; }
+  catch (x) { fail(x); return false; }
+}
+function histHtml(list, showUnit, canDel) {
   if (!list.length) return '<div class="card empty">Belum ada penggantian perangkat.</div>';
   return list.map(h => `<div class="card hi"><div class="row"><b>${showUnit ? esc(h.unitNo) + ' \u00B7 ' : ''}${esc(h.deviceName)}</b><span class="badge b-pend">${esc(h.reason)}</span></div>
     <div class="m">${fmtDate(h.date)} \u00B7 oleh ${esc(h.createdBy)}</div>
     ${h.oldSN || h.newSN ? `<div class="sn">SN: ${esc(h.oldSN) || '-'} \u2192 <b>${esc(h.newSN) || '-'}</b></div>` : ''}
     ${h.note ? `<div class="m">Catatan: ${esc(h.note)}</div>` : ''}
     ${h.photo ? `<a href="${photoFull(h.photo)}" target="_blank" rel="noopener"><img src="${photoThumb(h.photo)}" alt="Foto perangkat baru" style="width:56px;height:56px;object-fit:cover;border-radius:6px;margin-top:8px"></a>` : ''}
+    ${canDel ? `<div style="margin-top:8px"><button class="btn sm dng" data-del="${esc(h.id)}">Hapus</button></div>` : ''}
     </div>`).join('');
 }
 
@@ -754,8 +761,15 @@ PAGES.installs = async () => {
       <div class="ft">${S.user.role === 'Admin' ? '<button class="btn dng" id="dl">Hapus</button>' : ''}<button class="btn" id="pd">Unduh PDF</button>
       ${isViewer() ? '' : '<button class="btn" id="rp">Ganti Perangkat</button><button class="btn" id="ed">Edit</button>'}<button class="btn pri" id="cl">Tutup</button></div>`, true);
     const q = s => o.querySelector(s);
-    call('listReplacements', { unitId: r.unitId }).then(l => { q('#hs').innerHTML = histHtml(l, false); })
+    let hl = [];
+    const showHist = () => { q('#hs').innerHTML = histHtml(hl, false, canDelHist()); };
+    call('listReplacements', { unitId: r.unitId }).then(l => { hl = l; showHist(); })
       .catch(e => { q('#hs').textContent = 'Gagal memuat riwayat.'; fail(e); });
+    q('#hs').onclick = async e => {
+      const b = e.target.closest('button[data-del]'); if (!b) return;
+      const h = hl.find(x => x.id === b.dataset.del);
+      if (h && await delHist(h)) { hl = hl.filter(x => x.id !== h.id); showHist(); }
+    };
     q('#cl').onclick = () => o.remove();
     q('#pd').onclick = async e => {
       const b = e.currentTarget;
@@ -786,9 +800,14 @@ PAGES.history = async () => {
     const q = $('#q').value.toLowerCase(), f = $('#df').value, t = $('#dt').value;
     const l = rows.filter(h => (!q || [h.unitNo, h.deviceName, h.oldSN, h.newSN, h.reason].join(' ').toLowerCase().includes(q)) &&
       (!f || h.date >= f) && (!t || h.date <= t));
-    $('#hl').innerHTML = histHtml(l, true);
+    $('#hl').innerHTML = histHtml(l, true, canDelHist());
   };
   draw();
+  $('#hl').onclick = async e => {
+    const b = e.target.closest('button[data-del]'); if (!b) return;
+    const h = rows.find(x => x.id === b.dataset.del);
+    if (h && await delHist(h)) { rows.splice(rows.indexOf(h), 1); draw(); }
+  };
   ['#q', '#df', '#dt'].forEach(s => $(s).oninput = draw);
 };
 
@@ -1143,22 +1162,12 @@ PAGES.report = async () => {
 })();
 </script>
 <script>
-/* ===== PATCH IMPORT DATA (khusus Admin) ===== Hapus blok ini untuk membatalkan. */
+/* ===== PATCH IMPORT DATA (Admin dan Manager) ===== Hapus blok ini untuk membatalkan. */
 (function () {
   if (typeof PAGES === 'undefined' || typeof MENU === 'undefined') return;
 
   const ui = MENU.findIndex(m => m[0] === 'users');
   MENU.splice(ui < 0 ? MENU.length : ui + 1, 0, ['import', 'Import Data', '\uD83D\uDCE5', 1]);
-
-  /* Manager tampil sebagai Admin di frontend (lihat patch Role): sembunyikan menu ini untuk Manager */
-  const _start = start;
-  start = function () {
-    _start();
-    if (S.user && S.user.realRole === 'Manager') {
-      const b = document.querySelector('#menu button[data-p="import"]');
-      if (b) b.remove();
-    }
-  };
 
   function parseCsv(t) {
     t = String(t).replace(/^\uFEFF/, '');
@@ -1186,12 +1195,11 @@ PAGES.report = async () => {
   PAGES.import = async () => {
     const fd = await call('formData');
     const devs = fd.devices;
-    if (!devs.length) { $('#main').innerHTML = '<div class="card empty">Master Device project ini belum diisi. Isi dulu di menu Master Device.</div>'; return; }
     let type = 'install', rows = [], pre = [], checked = null, label = '', tplUrl = '';
 
     $('#main').innerHTML =
       '<div class="card"><h3 style="margin-bottom:8px">1. Jenis data dan template</h3>' +
-      '<label class="f">Jenis data<select class="inp" id="imt"><option value="install">Data Instalasi (satu baris per unit)</option><option value="repl">Riwayat Penggantian</option></select></label>' +
+      '<label class="f">Jenis data<select class="inp" id="imt"><option value="install">Data Instalasi (satu baris per unit)</option><option value="repl">Riwayat Penggantian</option><option value="units">Master Unit (daftar unit)</option></select></label>' +
       '<p class="note2" id="imh"></p><div id="imd"></div></div>' +
       '<div class="card"><h3 style="margin-bottom:8px">2. Opsi</h3><div id="imo"></div></div>' +
       '<div class="card"><h3 style="margin-bottom:8px">3. Pilih file CSV</h3>' +
@@ -1207,7 +1215,13 @@ PAGES.report = async () => {
 
     function drawType() {
       let head;
-      if (type === 'install') {
+      if (type === 'units') {
+        head = ['Nomor Unit', 'Tipe', 'Catatan', 'Aktif'];
+        $('#imh').innerHTML = 'Satu baris per unit. <b>Nomor Unit</b> wajib dan harus unik di project ini. <b>Tipe</b> dan <b>Catatan</b> opsional. <b>Aktif</b>: Ya atau Tidak (kosong dianggap Ya untuk unit baru). Unit dicocokkan dengan nomor unit yang sudah ada tanpa membedakan huruf besar/kecil.';
+        $('#imo').innerHTML =
+          '<label class="f">Jika nomor unit sudah ada di Master Unit<select class="inp" id="oe"><option value="skip">Lewati (data lama tidak diubah)</option><option value="update">Perbarui (timpa Tipe, Catatan, Aktif)</option></select></label>' +
+          '<p class="note2">Pada mode Perbarui, kolom yang dikosongkan tidak mengubah data lama. Perubahan pada unit yang sudah ada tidak ikut dibatalkan oleh tombol Batalkan; yang dibatalkan hanya unit baru hasil import ini (selama belum punya data instalasi).</p>';
+      } else if (type === 'install') {
         head = ['Nomor Unit', 'Tipe', 'Catatan Unit', 'Tanggal', 'Remarks'];
         devs.forEach(d => {
           head.push(d.name + ' - Status');
@@ -1227,7 +1241,8 @@ PAGES.report = async () => {
       }
       if (tplUrl) URL.revokeObjectURL(tplUrl);
       tplUrl = URL.createObjectURL(new Blob(['\uFEFF' + head.map(csvCell).join(';') + '\r\n'], { type: 'text/csv' }));
-      $('#imd').innerHTML = '<a class="btn" href="' + tplUrl + '" download="template_import_' + (type === 'install' ? 'instalasi' : 'penggantian') + '.csv">Unduh template (' + esc(S.user.projectName || 'project') + ')</a>';
+      if (type !== 'units' && !devs.length) $('#imh').innerHTML += '<br><b style="color:var(--bad)">Master Device project ini belum diisi.</b> Isi dulu di menu Master Device.';
+      $('#imd').innerHTML = '<a class="btn" href="' + tplUrl + '" download="template_import_' + ({ units: 'master_unit', install: 'instalasi', repl: 'penggantian' })[type] + '.csv">Unduh template (' + esc(S.user.projectName || 'project') + ')</a>';
     }
     drawType();
     $('#imt').onchange = e => { type = e.target.value; $('#imf').value = ''; reset(); drawType(); };
@@ -1249,14 +1264,14 @@ PAGES.report = async () => {
       if (t.length < 2) return bad('File kosong atau hanya berisi header.');
       if (t.length - 1 > 2000) return bad('Maksimal 2000 baris per file. Pecah file menjadi beberapa bagian.');
       const headers = t[0].map(x => String(x).trim()), low = headers.map(x => x.toLowerCase());
-      const need = type === 'install' ? ['nomor unit', 'tanggal'] : ['nomor unit', 'device', 'tanggal', 'alasan'];
+      const need = type === 'units' ? ['nomor unit'] : (type === 'install' ? ['nomor unit', 'tanggal'] : ['nomor unit', 'device', 'tanggal', 'alasan']);
       const miss = need.filter(x => low.indexOf(x) < 0);
       if (miss.length) return bad('Kolom wajib tidak ditemukan: ' + esc(miss.join(', ')) + '. Gunakan template terbaru.');
       if (type === 'install' && !devs.some(d => low.indexOf(String(d.name).toLowerCase() + ' - status') >= 0))
         return bad('Tidak ada kolom status device yang cocok dengan Master Device project ini. Unduh template terbaru.');
       rows = t.slice(1).map((r, i) => { const v = {}; headers.forEach((h, j) => { v[h] = r[j] == null ? '' : r[j]; }); return { n: i + 2, v: v }; });
       pre = [];
-      if (type === 'install') {
+      if (type !== 'repl') {
         const key = headers[low.indexOf('nomor unit')], seen = {};
         rows = rows.filter(r => {
           const k = String(r.v[key]).trim().toLowerCase();
@@ -1295,7 +1310,9 @@ PAGES.report = async () => {
       (arr.length > 200 ? '<p class="note2">Menampilkan 200 dari ' + arr.length + ' catatan.</p>' : '');
 
     function show(out, done) {
-      const det = type === 'install'
+      const det = type === 'units'
+        ? 'Unit baru: <b>' + out.units + '</b> \u00B7 Diperbarui: <b>' + out.updated + '</b>'
+        : type === 'install'
         ? 'Unit baru: <b>' + out.units + '</b> \u00B7 Instalasi baru: <b>' + out.installs + '</b> \u00B7 Diperbarui: <b>' + out.updated + '</b>'
         : 'Penggantian baru: <b>' + out.repl + '</b>';
       $('#imx').innerHTML = '<div class="card"><h3 style="margin-bottom:10px">' + (done ? 'Hasil impor' : 'Hasil pemeriksaan (belum ada data yang disimpan)') + '</h3>' +
@@ -1321,8 +1338,8 @@ PAGES.report = async () => {
     $('#imc').onclick = async () => { label = ''; checked = await run('check'); show(checked, false); sync(); };
     $('#imr').onclick = async () => {
       if (!checked || !checked.ok) return;
-      const msg = 'Impor ' + checked.ok + ' baris valid ke project "' + (S.user.projectName || '') + '"? ' + (checked.errors.length ? checked.errors.length + ' baris error akan dilewati. ' : '') + 'Pastikan Google Sheet sudah di-backup.';
-      if (!(await confirmBox(msg))) return;
+      const msg = 'Impor ' + checked.ok + ' baris valid ke project "' + (S.user.projectName || '') + '"? ' + (checked.errors.length ? checked.errors.length + ' baris error akan dilewati. ' : '') + 'Pastikan database sudah dibackup.';
+      if (!(await confirmBox(msg, 'Ya, impor'))) return;
       label = 'Import ' + todayStr() + ' ' + new Date().toTimeString().slice(0, 8);
       const out = await run('commit');
       rows = []; pre = []; checked = null; $('#imf').value = '';
