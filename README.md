@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public_html/logo.png" alt="Installation Management System" width="360">
+  <img src="assets/logo.png" alt="Installation Management System" width="360">
 </p>
 
 <h1 align="center">Installation Management System (IMS)</h1>
