@@ -1,6 +1,6 @@
 <?php
 // Import data massal (khusus Admin). Pengganti importRun_, impInstall_, impRepl_, importUndo_ di Code.gs.
-// Format permintaan: { type:'install'|'repl', mode:'check'|'commit', rows:[{n,v}], opts:{createUnits,onExisting,allowNoSN}, label }
+// Format permintaan: { type:'install'|'repl'|'units', mode:'check'|'commit', rows:[{n,v}], opts:{createUnits,onExisting,allowNoSN}, label }
 
 function imp_norm($v) {
   $m = [];
@@ -51,7 +51,10 @@ function r_importRun($p, $u) {
   $ctx->devs = rows('SELECT * FROM devices WHERE project_id = ?', [cur_id()]);
   $ctx->unitBy = [];
   foreach (rows('SELECT * FROM units WHERE project_id = ?', [cur_id()]) as $x) $ctx->unitBy[mb_strtolower(trim($x['unit_no']))] = $x;
-  if (isset($p['type']) && $p['type'] === 'repl') imp_repl($ctx); else imp_install($ctx);
+  $type = isset($p['type']) ? $p['type'] : 'install';
+  if ($type === 'repl') imp_repl($ctx);
+  elseif ($type === 'units') imp_units($ctx);
+  else imp_install($ctx);
   return $ctx->res;
 }
 
@@ -175,4 +178,52 @@ function r_importUndo($p, $u) {
     if ($del) $out['units'] = q('DELETE FROM units WHERE project_id = ? AND id IN (' . placeholders($del) . ')', array_merge([cur_id()], $del))->rowCount();
   }
   return $out;
+}
+
+/* ---------- Import Master Unit ----------
+   Kolom: Nomor Unit (wajib), Tipe, Catatan, Aktif (Ya/Tidak). Unit dicocokkan berdasarkan Nomor Unit (tidak peka huruf besar/kecil). */
+function imp_bool($s) {   // '' = tidak ditentukan, null = tidak dikenali
+  $x = mb_strtolower(trim((string)$s));
+  if ($x === '') return '';
+  if (in_array($x, ['ya', 'y', 'yes', 'aktif', 'active', '1', 'true'], true)) return 1;
+  if (in_array($x, ['tidak', 't', 'no', 'n', 'nonaktif', 'non-aktif', 'inactive', '0', 'false'], true)) return 0;
+  return null;
+}
+function imp_units($ctx) {
+  $update = isset($ctx->o['onExisting']) && $ctx->o['onExisting'] === 'update';
+  $known = ['nomor unit' => 1, 'unit' => 1, 'tipe' => 1, 'catatan' => 1, 'catatan unit' => 1, 'aktif' => 1];
+  $seen = []; $new = []; $upd = [];
+  foreach ($ctx->rows as $idx => $r) {
+    $m = imp_norm(isset($r['v']) ? $r['v'] : []);
+    $n = isset($r['n']) ? $r['n'] : $idx + 2;
+    if ($idx === 0) foreach (array_keys($m) as $k) { $k = (string)$k; if ($k !== '' && !isset($known[$k])) $ctx->res['unknownCols'][] = $k; }
+    $no = imp_pick($m, ['nomor unit', 'unit']);
+    if ($no === '') { imp_err($ctx, $n, 'Nomor unit kosong'); continue; }
+    if (mb_strlen($no) > 100) { imp_err($ctx, $n, 'Nomor unit terlalu panjang (maksimal 100 karakter)'); continue; }
+    $uk = mb_strtolower($no);
+    if (isset($seen[$uk])) { imp_err($ctx, $n, 'Unit ' . $no . ' muncul lebih dari sekali pada data ini'); continue; }
+    $seen[$uk] = 1;
+    $type = imp_pick($m, ['tipe']);
+    $notes = imp_pick($m, ['catatan', 'catatan unit']);
+    if (mb_strlen($type) > 100) { imp_err($ctx, $n, 'Tipe terlalu panjang (maksimal 100 karakter) pada unit ' . $no); continue; }
+    $act = imp_bool(imp_pick($m, ['aktif']));
+    if ($act === null) { imp_err($ctx, $n, 'Nilai Aktif tidak dikenali pada unit ' . $no . ' (gunakan Ya atau Tidak)'); continue; }
+    $unit = isset($ctx->unitBy[$uk]) ? $ctx->unitBy[$uk] : null;
+    if ($unit) {
+      if (!$update) { $ctx->res['skipped']++; imp_warn($ctx, $n, 'Unit ' . $no . ' sudah ada, dilewati'); continue; }
+      // kolom yang dikosongkan tidak mengubah data lama
+      $upd[] = ['id' => $unit['id'], 'type' => $type !== '' ? $type : (string)$unit['type'], 'notes' => $notes !== '' ? $notes : (string)$unit['notes'],
+                'active' => $act === '' ? (int)$unit['active'] : $act];
+      $ctx->res['ok']++; $ctx->res['updated']++;
+      continue;
+    }
+    $id = uuid();
+    $row = ['id' => $id, 'project_id' => cur_id(), 'unit_no' => $no, 'type' => $type, 'notes' => $notes, 'active' => $act === '' ? 1 : $act];
+    $ctx->unitBy[$uk] = $row;
+    $new[] = $row; $ctx->res['ok']++; $ctx->res['units']++; $ctx->res['newUnitIds'][] = $id;
+  }
+  if ($ctx->commit) {
+    foreach ($new as $x) q('INSERT INTO units (id, project_id, unit_no, type, notes, active) VALUES (?,?,?,?,?,?)', [$x['id'], $x['project_id'], $x['unit_no'], $x['type'], $x['notes'], $x['active']]);
+    foreach ($upd as $x) q('UPDATE units SET type = ?, notes = ?, active = ? WHERE id = ? AND project_id = ?', [$x['type'], $x['notes'], $x['active'], $x['id'], cur_id()]);
+  }
 }
