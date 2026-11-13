@@ -1,7 +1,7 @@
 // Service worker IMS: syarat install PWA + halaman awal tetap terbuka saat sinyal buruk.
 // Data (api.php) dan foto (uploads/) TIDAK pernah disimpan di cache, jadi data selalu segar dan aman.
 // Naikkan angka VERSION setiap kali Anda mengganti index.html / logo agar perangkat memuat versi terbaru.
-const VERSION = 'v1';
+const VERSION = 'v4';
 const CACHE = 'ims-shell-' + VERSION;
 const SHELL = ['./', 'index.html', 'logo.png', 'icon-192.png', 'favicon-32.png', 'site.webmanifest'];
 
