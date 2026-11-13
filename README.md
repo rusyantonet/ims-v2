@@ -94,7 +94,7 @@ ims-cpanel/
 
 ## Prasyarat
 
-- Hosting cPanel (atau server Apache lain) dengan **PHP 7.4+** dan **MySQL/MariaDB**.
+- Hosting server Apache dengan **PHP 7.4+** dan **MySQL/MariaDB**.
 - Ekstensi PHP: `pdo_mysql`, `mbstring`, `zip`, `ctype`, `json`, dan `curl` (hanya jika memakai penyimpanan foto Google Drive).
 - **HTTPS** aktif (wajib agar dapat dipasang sebagai PWA).
 - Folder `uploads/` dapat ditulis (izin `755` atau `775`).
