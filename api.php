@@ -396,6 +396,14 @@ function r_listReplacements($p, $u) {
   usort($list, function ($a, $b) { return strcmp((string)$b['date'], (string)$a['date']) ?: strcmp((string)$b['createdAt'], (string)$a['createdAt']); });
   return $list;
 }
+function r_deleteReplacement($p, $u) {
+  $id = str_(isset($p['id']) ? $p['id'] : '');
+  $r = row1('SELECT * FROM replacements WHERE id = ?', [$id]);
+  if (!$r) fail('Data tidak ditemukan');
+  if ($r['project_id'] !== cur_id()) fail('Data bukan milik project ini');
+  q('DELETE FROM replacements WHERE id = ?', [$id]);   // hanya catatan riwayat; serial number pada data instalasi tidak diubah
+  return null;
+}
 function r_replaceDevice($p, $u) {
   $unit = row1('SELECT * FROM units WHERE id = ? AND project_id = ?', [isset($p['unitId']) ? (string)$p['unitId'] : '', cur_id()]);
   if (!$unit) fail('Unit tidak ditemukan');
@@ -512,13 +520,14 @@ $ROUTES = [
   'uploadPhoto'      => ['h' => 'r_uploadPhoto', 'edit' => 1],
   'replaceDevice'    => ['h' => 'r_replaceDevice', 'w' => 1, 'edit' => 1],
   'listReplacements' => ['h' => 'r_listReplacements'],
+  'deleteReplacement' => ['h' => 'r_deleteReplacement', 'w' => 1, 'mgr' => 1],
   'generateReport'   => ['h' => 'r_generateReport'],
   'generateExcel'    => ['h' => 'r_generateExcel'],
   'listGuide'        => ['h' => 'r_listGuide'],
   'saveGuide'        => ['h' => 'r_saveGuide', 'w' => 1, 'admin' => 1],
   'deleteGuide'      => ['h' => 'r_deleteGuide', 'w' => 1, 'admin' => 1],
-  'importRun'        => ['h' => 'r_importRun', 'w' => 1, 'admin' => 1],
-  'importUndo'       => ['h' => 'r_importUndo', 'w' => 1, 'admin' => 1],
+  'importRun'        => ['h' => 'r_importRun', 'w' => 1, 'mgr' => 1],
+  'importUndo'       => ['h' => 'r_importUndo', 'w' => 1, 'mgr' => 1],
   'listProjects'     => ['h' => 'r_listProjects', 'admin' => 1],
   'assignableProjects' => ['h' => 'r_assignableProjects', 'mgr' => 1],
   'saveProject'      => ['h' => 'r_saveProject', 'w' => 1, 'admin' => 1],
