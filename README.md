@@ -1,7 +1,13 @@
-![IMS](assets/logo.png)
+<p align="center">
+  <img src="public_html/logo.png" alt="Installation Management System" width="360">
+</p>
 
-Aplikasi web untuk mendokumentasikan instalasi perangkat pada kendaraan tambang, multi-project, dengan serial number, foto, riwayat penggantian, dan laporan.
-Berjalan di hosting cPanel biasa (PHP + MySQL), tanpa framework dan tanpa proses build.
+<h1 align="center">Installation Management System (IMS)</h1>
+
+<p align="center">
+  Aplikasi web untuk mendokumentasikan instalasi perangkat pada kendaraan tambang, multi-project, dengan serial number, foto, riwayat penggantian, dan laporan.<br>
+  Berjalan di hosting biasa (PHP + MySQL), tanpa framework dan tanpa proses build.
+</p>
 
 ---
 
@@ -32,7 +38,7 @@ Berjalan di hosting cPanel biasa (PHP + MySQL), tanpa framework dan tanpa proses
 | **Input instalasi** | Per unit: tanggal, status tiap device (*Installed* / *Pending*), serial number, foto, dan remarks. Satu unit = satu data (upsert). |
 | **Penggantian perangkat** | Dicatat saat SN diubah (dengan alasan, tanggal, catatan, foto) atau lewat tombol *Ganti Perangkat*. |
 | **Laporan** | PDF (rekap semua unit atau satu unit, dengan foto dan riwayat) dan Excel (`.xlsx` dengan dua sheet). |
-| **Import data** | Impor massal data instalasi dan riwayat penggantian (khusus Admin), dengan mode *periksa* sebelum *simpan* dan fitur batalkan. |
+| **Import data** | Impor massal lewat CSV (Admin dan Manager): **Master Unit**, data instalasi, dan riwayat penggantian. Ada template per jenis, mode *periksa* sebelum *simpan*, dan fitur batalkan. |
 | **Panduan (wiki)** | Artikel bantuan yang dikelola Admin, dengan pengaturan peran pembaca dan tampil di halaman login. |
 | **Manajemen user** | Empat peran (Admin, Manager, Engineer, Viewer) dengan akses per project. |
 | **PWA** | Dapat dipasang di layar utama Android. |
@@ -183,12 +189,13 @@ Syaratnya HTTPS aktif. Di **Chrome Android**, buka situs lalu ketuk tombol **Pas
 | Dashboard, Data Instalasi, Riwayat, Export laporan | ✅ | ✅ | ✅ | ✅ |
 | Input instalasi dan ganti perangkat | ✅ | ✅ | ✅ | ❌ |
 | Hapus data instalasi | ✅ | ✅ | ❌ | ❌ |
+| Hapus catatan riwayat penggantian | ✅ | ✅ | ❌ | ❌ |
 | Master Unit dan Master Device | ✅ | ✅ | ❌ | ❌ |
 | Kelola user (Engineer dan Viewer) | ✅ | ✅ | ❌ | ❌ |
 | Kelola user Admin/Manager | ✅ | ❌ | ❌ | ❌ |
 | Master Project | ✅ | ❌ | ❌ | ❌ |
 | Kelola Panduan | ✅ | ❌ | ❌ | ❌ |
-| Import data | ✅ | ❌ | ❌ | ❌ |
+| Import data | ✅ | ✅ | ❌ | ❌ |
 
 - Admin melihat semua project. Peran lain hanya project yang ditetapkan.
 - Manager hanya mengelola user pada project miliknya, dan hanya peran Engineer dan Viewer.
@@ -212,8 +219,8 @@ Satu endpoint: `POST /api.php` dengan body JSON dan respons selalu JSON.
 | Publik (tanpa token) | `publicProjects`, `publicGuide`, `loginBg`, `login`, `logout` |
 | Umum (login) | `me`, `dashboard`, `formData`, `listInstalls`, `getInstall`, `listReplacements`, `listGuide`, `generateReport`, `generateExcel` |
 | Tulis (bukan Viewer) | `saveInstall`, `replaceDevice`, `uploadPhoto` |
-| Manager ke atas | `deleteInstall`, `listUnits`, `saveUnit`, `deleteUnit`, `listDevices`, `saveDevice`, `deleteDevice`, `listUsers`, `saveUser`, `deleteUser`, `assignableProjects` |
-| Admin | `listProjects`, `saveProject`, `deleteProject`, `saveGuide`, `deleteGuide`, `importRun`, `importUndo` |
+| Manager ke atas | `deleteInstall`, `deleteReplacement`, `importRun`, `importUndo`, `listUnits`, `saveUnit`, `deleteUnit`, `listDevices`, `saveDevice`, `deleteDevice`, `listUsers`, `saveUser`, `deleteUser`, `assignableProjects` |
+| Admin | `listProjects`, `saveProject`, `deleteProject`, `saveGuide`, `deleteGuide` |
 
 Operasi tulis berjalan di dalam transaksi database. Respons `generateReport` berisi HTML siap cetak, dan `generateExcel` berisi berkas `.xlsx` dalam base64.
 
