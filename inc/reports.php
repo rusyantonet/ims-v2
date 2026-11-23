@@ -13,6 +13,9 @@ function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE
 function all_installs() {
   return array_map('inst_out', rows('SELECT * FROM installations WHERE project_id = ?', [cur_id()]));
 }
+function prog_text($i) {   // "12/12 (100%)" + jumlah Not Required bila ada
+  return $i['installed'] . '/' . $i['total'] . ' (' . $i['pct'] . '%)' . (!empty($i['notRequired']) ? ' + ' . $i['notRequired'] . ' N/R' : '');
+}
 function sort_by_unit(&$arr) { usort($arr, function ($a, $b) { return natcmp($a['unitNo'], $b['unitNo']); }); }
 function repl_list($unitId = '') {
   $list = array_map('repl_out', $unitId !== '' ? rows('SELECT * FROM replacements WHERE project_id = ? AND unit_id = ?', [cur_id(), $unitId])
@@ -98,7 +101,7 @@ function r_generateReport($p, $u) {
     foreach ($ins as $k => $i) {
       $pend = []; foreach ($i['details'] as $d) if ($d['status'] === 'Pending') $pend[] = $d['name'];
       $rowsR[] = [(string)($k + 1), (string)$i['unitNo'], isset($typeOf[$i['unitId']]) && $typeOf[$i['unitId']] !== '' ? $typeOf[$i['unitId']] : '-', fmt_d($i['date']),
-                  $i['installed'] . '/' . $i['total'] . ' (' . $i['pct'] . '%)', $pend ? implode(', ', $pend) : '-'];
+                  prog_text($i), $pend ? implode(', ', $pend) : '-'];
     }
     $b .= '<h2>Rekap per Unit</h2>' . html_table(['No', 'Unit', 'Tipe', 'Tanggal', 'Progress', 'Device Pending'], $rowsR);
   }
@@ -108,9 +111,9 @@ function r_generateReport($p, $u) {
       $brk = !$isUnit || $k > 0;
       $tp = isset($typeOf[$i['unitId']]) && $typeOf[$i['unitId']] !== '' ? ' &middot; ' . h($typeOf[$i['unitId']]) : '';
       $b .= '<div class="unit' . ($brk ? ' brk' : '') . '"><h3>' . h($i['unitNo']) . $tp . '</h3>'
-          . '<div class="mut">Tanggal instalasi: ' . h(fmt_d($i['date'])) . ' &middot; Progress: ' . $i['installed'] . '/' . $i['total'] . ' (' . $i['pct'] . '%)</div>';
+          . '<div class="mut">Tanggal instalasi: ' . h(fmt_d($i['date'])) . ' &middot; Progress: ' . h(prog_text($i)) . '</div>';
       $rowsD = [];
-      foreach ($i['details'] as $d) $rowsD[] = [$d['name'], $d['status'] === 'Pending' ? [$d['status'], 'pend'] : $d['status'], !empty($d['sn']) ? $d['sn'] : '-'];
+      foreach ($i['details'] as $d) $rowsD[] = [$d['name'], $d['status'] === 'Pending' ? [$d['status'], 'pend'] : ($d['status'] === 'Not Required' ? [$d['status'], 'nr'] : $d['status']), !empty($d['sn']) ? $d['sn'] : '-'];
       $b .= html_table(['Device', 'Status', 'Serial Number'], $rowsD);
       if ($history) {
         $b .= '<h4>Riwayat Penggantian</h4>';
@@ -148,7 +151,7 @@ function r_generateReport($p, $u) {
     . 'h1{font-size:20pt;color:#22292e;margin:0 0 2px}.sub{font-size:12pt;color:#b87d00;margin-bottom:2px}.mut{color:#6b767c;font-size:9pt;margin:2px 0 8px}.mut.sm{font-size:8pt}'
     . 'h2{font-size:13pt;color:#22292e;margin:14px 0 4px}h3{font-size:14pt;color:#22292e;margin:0 0 2px}h4{font-size:11pt;color:#22292e;margin:12px 0 4px}'
     . 'table{width:100%;border-collapse:collapse;font-size:9pt;margin:4px 0}th{background:#22292e;color:#fff;text-align:left;font-weight:bold}'
-    . 'th,td{border:.5pt solid #cfd4cc;padding:3px 5px;vertical-align:top;-webkit-print-color-adjust:exact;print-color-adjust:exact}td.pend{color:#b45309;font-weight:bold}'
+    . 'th,td{border:.5pt solid #cfd4cc;padding:3px 5px;vertical-align:top;-webkit-print-color-adjust:exact;print-color-adjust:exact}td.pend{color:#b45309;font-weight:bold}td.nr{color:#6b767c}'
     . 'tr{page-break-inside:avoid}.brk{page-break-before:always}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}figure{margin:0;page-break-inside:avoid}'
     . 'figcaption{font-size:9pt;font-weight:bold;margin-bottom:3px}figure img{width:100%;max-height:330px;object-fit:contain;border:.5pt solid #cfd4cc}'
     . '.bar{position:sticky;top:0;background:#fff7e0;border-bottom:1px solid #e8a317;padding:8px 12px;margin:0 -4px 10px;font-size:10pt}.bar button{font-size:10pt;padding:5px 12px;cursor:pointer}'
@@ -237,7 +240,7 @@ function r_generateExcel($p, $u) {
     $r = [(string)($k + 1), (string)$i['unitNo'], (isset($typeOf[$i['unitId']]) && $typeOf[$i['unitId']] !== '') ? $typeOf[$i['unitId']] : '-', fmt_d($i['date'])];
     foreach ($snDevices as $n) {
       $d = null; foreach ($i['details'] as $x) if ($x['name'] === $n) { $d = $x; break; }
-      $r[] = !$d ? '-' : (!empty($d['sn']) ? $d['sn'] : ($d['status'] === 'Pending' ? 'Pending' : '-'));
+      $r[] = !$d ? '-' : (!empty($d['sn']) ? $d['sn'] : ($d['status'] === 'Pending' ? 'Pending' : ($d['status'] === 'Not Required' ? 'Not Required' : '-')));
     }
     $r[] = $i['pct'] === 100 ? 'Lengkap' : 'Pending';
     $r[] = (string)$i['remarks'];
