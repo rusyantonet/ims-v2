@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+`<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="utf-8">
@@ -85,10 +85,14 @@ tr:last-child td{border-bottom:0}.acts{white-space:nowrap;text-align:right}.acts
 
 /* form instalasi */
 .dev .dh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font:600 18px 'Barlow Semi Condensed',sans-serif}
-.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.seg button{padding:11px;border:2px solid var(--line);background:#fff;border-radius:8px;cursor:pointer;font-weight:600;color:var(--mut)}
+.pkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;max-height:55vh;overflow:auto;margin-bottom:6px}
+.pki{display:flex;flex-direction:column;gap:4px;border:1px solid var(--line);border-radius:8px;padding:6px;cursor:pointer;font-size:12px;background:#fff}
+.pki:has(input:checked){border-color:var(--amber);background:#fff8e6}.pki img{width:100%;height:100px;object-fit:cover;border-radius:6px;background:#eceeea}.pki input{align-self:flex-start}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.seg button{padding:11px 4px;border:2px solid var(--line);background:#fff;border-radius:8px;cursor:pointer;font-weight:600;color:var(--mut)}
 .seg button.on[data-s=Installed]{border-color:var(--ok);background:var(--okbg);color:var(--ok)}
 .seg button.on[data-s=Pending]{border-color:var(--pend);background:var(--pendbg);color:var(--pend)}
+.seg button.on[data-s="Not Required"]{border-color:var(--mut);background:#eceeea;color:var(--mut)}
 .extra{display:none;margin-top:12px}.dev[data-st=Installed] .extra{display:block}
 .photo{display:flex;gap:12px;align-items:center;margin-top:10px}
 .photo label{cursor:pointer}.photo img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
@@ -127,7 +131,7 @@ a.btn{display:inline-block;text-decoration:none;text-align:center}.note2{color:v
     </label>
     <button class="btn pri" style="width:100%;padding:12px" id="lb">Masuk</button>
   </form>
-  <button type="button" class="btn hide" id="pwa" style="background:none;color:#fff;border:1px solid #5a666d">ðŸ“² Pasang aplikasi di perangkat ini</button>
+  <button type="button" class="btn hide" id="pwa" style="background:none;color:#fff;border:1px solid #5a666d">📲 Pasang aplikasi di perangkat ini</button>
   <div class="credit lg"></div>
 </div>
 
@@ -516,8 +520,9 @@ PAGES.dashboard = async () => {
   <div class="grid g2">
     <div class="card"><h3 style="margin-bottom:6px">Progress per device</h3>
       ${d.devices.map(x => {
-        const p = d.total ? Math.round(x.installed * 100 / d.total) : 0;
-        return `<div class="prow"><span>${esc(x.name)}</span><div class="prog"><i style="width:${p}%"></i></div><span>${x.installed}/${d.total}</span></div>`;
+        const den = d.total - (x.notRequired || 0);   // unit yang Not Required tidak dihitung
+        const p = den > 0 ? Math.round(x.installed * 100 / den) : 0;
+        return `<div class="prow"><span>${esc(x.name)}</span><div class="prog"><i style="width:${p}%"></i></div><span>${x.installed}/${den}</span></div>`;
       }).join('') || '<div class="empty">Belum ada device.</div>'}
       ${d.replByDevice.length ? '<h3 style="margin:16px 0 4px">Paling sering diganti</h3>' + d.replByDevice.map(x =>
         `<div class="prow"><span>${esc(x.name)}</span><div class="prog"><i style="width:${Math.round(x.count * 100 / maxRepl)}%;background:var(--pend)"></i></div><span>${x.count}x</span></div>`).join('') : ''}
@@ -636,10 +641,10 @@ PAGES.input = async () => {
   </div><div id="note"></div></div>
   <div id="devs" class="hide">${devs.map(d => `<div class="card dev" data-id="${d.id}">
       <div class="dh">${esc(d.name)}</div>
-      <div class="seg"><button type="button" data-s="Installed">Installed</button><button type="button" data-s="Pending">Pending</button></div>
+      <div class="seg"><button type="button" data-s="Installed">Installed</button><button type="button" data-s="Pending">Pending</button><button type="button" data-s="Not Required">Not Required</button></div>
       ${d.needSN || d.needPhoto ? `<div class="extra">
         ${d.needSN ? '<label class="f" style="margin:0">Serial Number<input class="inp sn" autocomplete="off" placeholder="Masukkan serial number"></label>' : ''}
-        ${d.needPhoto ? `<div class="photo"><img class="hide" alt="Foto ${esc(d.name)}"><label class="btn sm">\uD83D\uDCF7 Ambil / pilih foto<input type="file" accept="image/*" hidden></label><small></small></div>` : ''}</div>` : ''}
+        ${d.needPhoto ? `<div class="photo"><img class="hide" alt="Foto ${esc(d.name)}"><label class="btn sm">\uD83D\uDCF7 Ambil / pilih foto<input type="file" accept="image/*" hidden></label> <button type="button" class="btn sm dng hide" data-rmph>Hapus foto</button><small></small></div>` : ''}</div>` : ''}
     </div>`).join('')}
     <div class="card"><label class="f" style="margin:0">Remarks<textarea class="inp" id="rem" placeholder="Catatan tambahan (opsional)"></textarea></label></div>
     <div class="stick"><button class="btn pri" id="save">Simpan Data Instalasi</button></div></div>`;
@@ -657,6 +662,7 @@ PAGES.input = async () => {
         const src = s.prev || (s.photo ? photoThumb(s.photo) : '');
         im.src = src; im.classList.toggle('hide', !src);
         c.querySelector('small').textContent = s.photo ? 'Foto tersimpan' : '';
+        const rm = c.querySelector('[data-rmph]'); if (rm) rm.classList.toggle('hide', !src);
       }
     });
   }
@@ -685,6 +691,13 @@ PAGES.input = async () => {
   }
   $('#unit').onchange = e => loadUnit(e.target.value);
   $('#devs').addEventListener('click', e => {
+    const rm = e.target.closest('[data-rmph]');
+    if (rm) {   // hapus foto device (tersimpan saat klik Simpan)
+      const c = rm.closest('.dev'), s = st[c.dataset.id];
+      s.photo = ''; s.prev = ''; paint();
+      c.querySelector('small').textContent = 'Foto dihapus. Klik Simpan untuk menyimpan perubahan.';
+      return;
+    }
     const b = e.target.closest('.seg button');
     if (!b) return;
     st[b.closest('.dev').dataset.id].status = b.dataset.s;
@@ -738,7 +751,7 @@ PAGES.installs = async () => {
     const q = $('#q').value.toLowerCase(), l = rows.filter(r => String(r.unitNo).toLowerCase().includes(q));
     $('#list').innerHTML = l.map(r => `<div class="card ic"><div class="row"><h3>${esc(r.unitNo)}</h3>${r.pct === 100 ? badge(true, 'Lengkap') : `<span class="badge b-pend">${r.total - r.installed} pending</span>`}</div>
       <div class="m">${fmtDate(r.date)} \u00B7 oleh ${esc(r.createdBy)}</div>
-      <div class="prog"><i style="width:${r.pct}%"></i></div><div class="m">${r.installed}/${r.total} device terpasang (${r.pct}%)</div>
+      <div class="prog"><i style="width:${r.pct}%"></i></div><div class="m">${r.installed}/${r.total} device terpasang (${r.pct}%)${r.notRequired ? ' \u00B7 ' + r.notRequired + ' not required' : ''}</div>
       <button class="btn sm" data-id="${r.id}" style="align-self:flex-start">Detail</button></div>`).join('')
       || '<div class="card empty" style="grid-column:1/-1">Belum ada data instalasi. Mulai dari menu Input Data Instalasi.</div>';
   };
@@ -751,9 +764,9 @@ PAGES.installs = async () => {
 
   function detail(r) {
     const o = modal(`<h3>Unit ${esc(r.unitNo)}</h3>
-      <p style="color:var(--mut);margin-top:-8px">${fmtDate(r.date)} \u00B7 ${esc(r.createdBy)} \u00B7 ${r.pct}% terpasang</p>
+      <p style="color:var(--mut);margin-top:-8px">${fmtDate(r.date)} \u00B7 ${esc(r.createdBy)} \u00B7 ${r.pct}% terpasang${r.notRequired ? ' \u00B7 ' + r.notRequired + ' not required' : ''}</p>
       <div class="card tw"><table style="min-width:480px"><thead><tr><th>Device</th><th>Status</th><th>Serial Number</th><th>Foto</th></tr></thead><tbody>
-      ${r.details.map(x => `<tr><td>${esc(x.name)}</td><td><span class="badge ${x.status === 'Installed' ? 'b-ok' : 'b-pend'}">${x.status}</span></td><td>${esc(x.sn) || '-'}</td>
+      ${r.details.map(x => `<tr><td>${esc(x.name)}</td><td><span class="badge ${x.status === 'Installed' ? 'b-ok' : x.status === 'Not Required' ? 'b-off' : 'b-pend'}">${x.status}</span></td><td>${esc(x.sn) || '-'}</td>
         <td>${x.photo ? `<a href="${photoFull(x.photo)}" target="_blank" rel="noopener"><img src="${photoThumb(x.photo)}" alt="Foto ${esc(x.name)}" style="width:56px;height:56px;object-fit:cover;border-radius:6px"></a>` : '-'}</td></tr>`).join('')}
       </tbody></table></div>
       <p><b>Remarks:</b> ${esc(r.remarks) || '-'}</p>
@@ -826,6 +839,7 @@ PAGES.report = async () => {
     '<div id="rd" class="grid g2"><label class="f">Dari tanggal instalasi<input class="inp" type="date" id="rf"></label><label class="f">Sampai tanggal<input class="inp" type="date" id="rt"></label></div>' +
     '<label class="chk"><input type="checkbox" id="c1">Sertakan detail per unit (device &amp; serial number)</label>' +
     '<label class="chk"><input type="checkbox" id="c2">Sertakan foto instalasi (maks. 30 foto per laporan)</label>' +
+    '<div id="pk" class="hide" style="margin:-2px 0 10px 28px"><button type="button" class="btn sm" id="pkb">\uD83D\uDDBC Pilih foto yang ditampilkan</button> <span class="note2" id="pks"></span></div>' +
     '<label class="chk"><input type="checkbox" id="c3" checked>Sertakan riwayat penggantian perangkat</label>' +
     '<p class="note2">Pembuatan PDF memakan waktu sekitar 10\u201360 detik, lebih lama jika memuat foto.</p>' +
     '<button class="btn pri" id="gen" style="width:100%;padding:13px">Buat PDF</button><div id="rr" style="margin-top:12px"></div></div>' +
@@ -843,15 +857,55 @@ PAGES.report = async () => {
     $('#c1').disabled = one;
     if (!$('#c1').checked) $('#c2').checked = false;
     $('#c2').disabled = !$('#c1').checked;
+    $('#pk').classList.toggle('hide', !$('#c2').checked);
   }
-  $('#rs').onchange = sync; $('#c1').onchange = sync; sync();
+  /* pilihan foto: null = semua foto pada cakupan laporan; reset bila cakupan berubah */
+  let instCache = null, sel = null;
+  const MAXP = 30;
+  const showSel = () => { $('#pks').textContent = sel ? sel.size + ' foto dipilih' : 'Semua foto pada cakupan ini'; };
+  const resetSel = () => { sel = null; showSel(); };
+  const candidates = async () => {
+    if (!instCache) instCache = await call('listInstalls');
+    const one = $('#rs').value === 'unit', from = $('#rf').value, to = $('#rt').value, uid = $('#ruu').value;
+    const list = instCache.filter(i => one ? i.unitId === uid : (!from || i.date >= from) && (!to || i.date <= to))
+      .sort((a, b) => String(a.unitNo).localeCompare(String(b.unitNo), undefined, { numeric: true }));
+    const out = [];
+    list.forEach(i => i.details.forEach(d => { if (d.photo) out.push({ key: i.unitId + ':' + d.deviceId, unitNo: i.unitNo, name: d.name, sn: d.sn, photo: d.photo }); }));
+    return out;
+  };
+  $('#pkb').onclick = async () => {
+    let list; try { instCache = null; list = await candidates(); } catch (e) { return fail(e); }
+    if (!list.length) return toast('Tidak ada foto pada cakupan laporan ini', true);
+    const cur = new Set(sel ? [...sel].filter(k => list.some(x => x.key === k)) : list.slice(0, MAXP).map(x => x.key));
+    const o = modal(`<h3>Pilih foto untuk laporan</h3><p class="note2" id="pkc"></p>
+      <div class="bar" style="margin:0 0 10px"><button class="btn sm" id="pka" type="button">Pilih ${Math.min(MAXP, list.length)} pertama</button><button class="btn sm" id="pkn" type="button">Kosongkan</button></div>
+      <div class="pkgrid">${list.map(x => `<label class="pki"><input type="checkbox" data-k="${esc(x.key)}"><img src="${photoThumb(x.photo)}" alt="" loading="lazy"><span><b>${esc(x.unitNo)}</b><br>${esc(x.name)}${x.sn ? '<br><small>' + esc(x.sn) + '</small>' : ''}</span></label>`).join('')}</div>
+      <div class="ft"><button class="btn" id="pkx" type="button">Batal</button><button class="btn pri" id="pko" type="button">Terapkan</button></div>`, true);
+    const boxes = [...o.querySelectorAll('input[data-k]')];
+    const count = () => { o.querySelector('#pkc').textContent = cur.size + ' dipilih dari ' + list.length + ' foto (maksimal ' + MAXP + ' per laporan)'; };
+    boxes.forEach(b => { b.checked = cur.has(b.dataset.k); });
+    count();
+    o.addEventListener('change', e => {
+      const b = e.target.closest('input[data-k]'); if (!b) return;
+      if (b.checked) { if (cur.size >= MAXP) { b.checked = false; return toast('Maksimal ' + MAXP + ' foto per laporan', true); } cur.add(b.dataset.k); }
+      else cur.delete(b.dataset.k);
+      count();
+    });
+    o.querySelector('#pka').onclick = () => { cur.clear(); list.slice(0, MAXP).forEach(x => cur.add(x.key)); boxes.forEach(b => { b.checked = cur.has(b.dataset.k); }); count(); };
+    o.querySelector('#pkn').onclick = () => { cur.clear(); boxes.forEach(b => { b.checked = false; }); count(); };
+    o.querySelector('#pkx').onclick = () => o.remove();
+    o.querySelector('#pko').onclick = () => { sel = new Set(cur); showSel(); o.remove(); };
+  };
+  ['#rs', '#ruu', '#rf', '#rt', '#c1', '#c2'].forEach(id => $(id).addEventListener('change', resetSel));
+  $('#rs').onchange = sync; $('#c1').onchange = sync; $('#c2').onchange = sync; sync(); showSel();
 
   $('#gen').onclick = async () => {
     const b = $('#gen'), one = $('#rs').value === 'unit';
     b.disabled = true; b.textContent = 'Membuat PDF... mohon tunggu'; $('#rr').innerHTML = '';
     try {
       const r = await call('generateReport', { scope: $('#rs').value, unitId: one ? $('#ruu').value : '',
-        from: $('#rf').value, to: $('#rt').value, detail: $('#c1').checked, photos: $('#c2').checked, history: $('#c3').checked });
+        from: $('#rf').value, to: $('#rt').value, detail: $('#c1').checked, photos: $('#c2').checked, history: $('#c3').checked,
+        photoKeys: ($('#c2').checked && sel) ? [...sel] : null });
       $('#rr').innerHTML = '<div class="card" style="margin:0"><b>Laporan siap</b><div class="note2" style="margin-bottom:10px">' + pdfInfo(r) + '</div><div class="bar" style="margin:0">' + pdfLinks(r) + '</div></div>';
     } catch (x) { fail(x); }
     b.disabled = false; b.textContent = 'Buat PDF';
@@ -1228,7 +1282,7 @@ PAGES.report = async () => {
           if (d.needSN) head.push(d.name + ' - SN');
           if (d.needPhoto) head.push(d.name + ' - Foto');
         });
-        $('#imh').innerHTML = 'Satu baris per unit. <b>Status</b>: Installed atau Pending (kosong dianggap Pending). <b>Tanggal</b>: yyyy-mm-dd atau dd/mm/yyyy. Kolom <b>- SN</b> diisi untuk device yang butuh serial number. Kolom <b>- Foto</b> (opsional) berisi ID atau tautan file Google Drive.';
+        $('#imh').innerHTML = 'Satu baris per unit. <b>Status</b>: Installed, Pending, atau Not Required (kosong dianggap Pending; Not Required untuk device yang memang tidak dibutuhkan unit tersebut). <b>Tanggal</b>: yyyy-mm-dd atau dd/mm/yyyy. Kolom <b>- SN</b> diisi untuk device yang butuh serial number. Kolom <b>- Foto</b> (opsional) berisi ID atau tautan file Google Drive.';
         $('#imo').innerHTML =
           '<label class="chk"><input type="checkbox" id="oc" checked>Buat unit baru otomatis jika nomor unit belum ada di Master Unit</label>' +
           '<label class="f">Jika unit sudah punya data instalasi<select class="inp" id="oe"><option value="skip">Lewati (data lama tidak diubah)</option><option value="update">Perbarui (timpa dengan data import)</option></select></label>' +
@@ -1286,14 +1340,15 @@ PAGES.report = async () => {
 
     async function run(mode) {
       const o = opts();
-      const out = { total: 0, ok: 0, skipped: 0, errors: pre.slice(), warns: [], units: 0, installs: 0, updated: 0, repl: 0, newUnitIds: [], unknownCols: [] };
+      const out = { total: 0, ok: 0, skipped: 0, errors: pre.slice(), warns: [], units: 0, installs: 0, updated: 0, repl: 0, written: 0, newUnitIds: [], unknownCols: [] };
       const lock = x => ['imc', 'imr', 'imf', 'imt'].forEach(id => { $('#' + id).disabled = x; });
       lock(true);
       try {
         for (let i = 0; i < rows.length; i += 150) {
           $('#imi').textContent = (mode === 'commit' ? 'Mengimpor' : 'Memeriksa') + ' baris ' + (i + 1) + '-' + Math.min(i + 150, rows.length) + ' dari ' + rows.length + '...';
           const r = await call('importRun', { type: type, mode: mode, rows: rows.slice(i, i + 150), opts: o, label: label });
-          ['total', 'ok', 'skipped', 'units', 'installs', 'updated', 'repl'].forEach(k => { out[k] += r[k]; });
+          ['total', 'ok', 'skipped', 'units', 'installs', 'updated', 'repl', 'written'].forEach(k => { out[k] += (r[k] || 0); });
+          if (r.project !== undefined) { out.project = r.project; out.unitCount = r.unitCount; }
           [].push.apply(out.errors, r.errors); [].push.apply(out.warns, r.warns); [].push.apply(out.newUnitIds, r.newUnitIds);
           r.unknownCols.forEach(c => { if (out.unknownCols.indexOf(c) < 0) out.unknownCols.push(c); });
         }
@@ -1318,6 +1373,9 @@ PAGES.report = async () => {
       $('#imx').innerHTML = '<div class="card"><h3 style="margin-bottom:10px">' + (done ? 'Hasil impor' : 'Hasil pemeriksaan (belum ada data yang disimpan)') + '</h3>' +
         '<div class="grid g4">' + stat(out.total, 'Baris diproses') + stat(out.ok, done ? 'Berhasil' : 'Valid', '--ok') + stat(out.skipped, 'Dilewati', '--pend') + stat(out.errors.length, 'Error', out.errors.length ? '--bad' : '') + '</div>' +
         '<p style="margin:12px 0 0">' + det + '</p>' +
+        (done ? (out.ok > 0 && !out.written
+          ? '<p class="note" style="border-color:var(--bad);color:var(--bad)"><b>Peringatan:</b> ' + out.ok + ' baris dinyatakan valid, tetapi <b>tidak ada baris yang tertulis ke database</b>. Data belum tersimpan. Aktifkan mode debug (debug =&gt; true di ims_config.php), ulangi, lalu kirim pesan error-nya.</p>'
+          : '<p class="note2" style="margin:8px 0 0">Tertulis ke database: <b>' + out.written + '</b> baris, pada project <b>' + esc(out.project || '') + '</b>' + (type === 'units' ? ' (total unit di project ini sekarang: <b>' + (out.unitCount || 0) + '</b>)' : '') + '.</p>') : '') +
         (out.aborted ? '<p class="note">Proses terhenti karena kesalahan. Sebagian data mungkin sudah masuk. Pakai Batalkan, atau ulangi dengan opsi Lewati (data yang sudah masuk tidak akan ganda).</p>' : '') +
         (out.unknownCols.length ? '<p class="note">Kolom tidak dikenali dan diabaikan: ' + esc(out.unknownCols.join(', ')) + '</p>' : '') +
         (out.errors.length ? '<h3 style="margin:14px 0 0;font-size:17px">Baris ditolak</h3>' + tbl(out.errors) : '') +
