@@ -28,10 +28,12 @@ function pub_user($u) { return ['id' => $u['id'], 'username' => $u['username'], 
 function can_access_project($u, $pid) { return $u['role'] === 'Admin' || in_array($pid, user_projects($u['id']), true); }
 function inst_out($i) {
   $d = jdec_arr($i['details']);
-  $n = 0; foreach ($d as $x) if (isset($x['status']) && $x['status'] === 'Installed') $n++;
-  $t = count($d);
+  $n = 0; $nr = 0;
+  foreach ($d as $x) { $s = isset($x['status']) ? $x['status'] : ''; if ($s === 'Installed') $n++; elseif ($s === 'Not Required') $nr++; }
+  $t = count($d) - $nr;   // 'Not Required' tidak dihitung dalam total maupun persentase
+  $pct = $t > 0 ? (int)round($n * 100 / $t) : (count($d) > 0 ? 100 : 0);   // semua device Not Required = tidak ada yang tertunda
   return ['id' => $i['id'], 'unitId' => $i['unit_id'], 'unitNo' => $i['unit_no'], 'date' => $i['date'], 'remarks' => $i['remarks'], 'details' => $d,
-          'installed' => $n, 'total' => $t, 'pct' => $t ? (int)round($n * 100 / $t) : 0, 'createdBy' => $i['created_by'], 'updatedAt' => $i['updated_at']];
+          'installed' => $n, 'total' => $t, 'notRequired' => $nr, 'pct' => $pct, 'createdBy' => $i['created_by'], 'updatedAt' => $i['updated_at']];
 }
 function guide_out($g) {
   return ['id' => $g['id'], 'title' => $g['title'], 'body' => $g['body'], 'roles' => to_ids($g['roles']), 'public' => (bool)$g['is_public'],
@@ -338,12 +340,13 @@ function r_saveInstall($p, $u) {
     $d = isset($x['deviceId'], $devs[$x['deviceId']]) ? $devs[$x['deviceId']] : null;
     if (!$d) fail('Device tidak ditemukan');
     $st = isset($x['status']) ? $x['status'] : '';
-    if (!in_array($st, ['Installed', 'Pending'], true)) fail('Pilih status untuk ' . $d['name']);
+    if (!in_array($st, STATUSES, true)) fail('Pilih status untuk ' . $d['name']);
     $sn = str_(isset($x['sn']) ? $x['sn'] : '');
     if ($st === 'Installed' && $d['need_sn'] && $sn === '') fail('Serial Number ' . $d['name'] . ' wajib diisi');
     if ($st === 'Installed' && $d['need_photo'] && REQUIRE_PHOTO && empty($x['photo'])) fail('Foto ' . $d['name'] . ' wajib diunggah');
     $details[] = ['deviceId' => $d['id'], 'name' => $d['name'], 'status' => $st,
-                  'sn' => $d['need_sn'] ? $sn : '', 'photo' => $d['need_photo'] ? (string)(isset($x['photo']) ? $x['photo'] : '') : ''];
+                  'sn' => ($st !== 'Not Required' && $d['need_sn']) ? $sn : '',
+                  'photo' => ($st !== 'Not Required' && $d['need_photo']) ? (string)(isset($x['photo']) ? $x['photo'] : '') : ''];
   }
   if (!$details) fail('Tidak ada device untuk disimpan');
   $now = now_iso();
@@ -495,14 +498,19 @@ function r_dashboard($p, $u) {
   }
   $dev = [];
   foreach (rows('SELECT name FROM devices WHERE project_id = ? AND active = 1 ORDER BY sort', [cur_id()]) as $d) $dev[$d['name']] = 0;
-  foreach ($byUnit as $b) foreach ($b['details'] as $x) if (isset($x['status']) && $x['status'] === 'Installed' && array_key_exists($x['name'], $dev)) $dev[$x['name']]++;
+  $nrDev = [];
+  foreach ($byUnit as $b) foreach ($b['details'] as $x) {
+    if (!isset($x['status']) || !array_key_exists($x['name'], $dev)) continue;
+    if ($x['status'] === 'Installed') $dev[$x['name']]++;
+    elseif ($x['status'] === 'Not Required') $nrDev[$x['name']] = (isset($nrDev[$x['name']]) ? $nrDev[$x['name']] : 0) + 1;
+  }
   $rc = []; $replTotal = 0;
   foreach (rows('SELECT device_name FROM replacements WHERE project_id = ?', [cur_id()]) as $r) { $replTotal++; $rc[$r['device_name']] = (isset($rc[$r['device_name']]) ? $rc[$r['device_name']] : 0) + 1; }
   arsort($rc);
   $rb = []; foreach (array_slice($rc, 0, 5, true) as $n => $c) $rb[] = ['name' => (string)$n, 'count' => $c];
   $total = count($units); $started = 0; $complete = 0; $sum = 0;
   foreach ($list as $x) { if ($x['started']) { $started++; if ($x['pct'] === 100) $complete++; } $sum += $x['pct']; }
-  $devOut = []; foreach ($dev as $n => $c) $devOut[] = ['name' => (string)$n, 'installed' => $c];
+  $devOut = []; foreach ($dev as $n => $c) $devOut[] = ['name' => (string)$n, 'installed' => $c, 'notRequired' => isset($nrDev[$n]) ? $nrDev[$n] : 0];
   return ['total' => $total, 'started' => $started, 'complete' => $complete, 'partial' => $started - $complete, 'notStarted' => $total - $started,
           'overall' => $total ? (int)round($sum / $total) : 0, 'devices' => $devOut, 'units' => $list, 'replTotal' => $replTotal, 'replByDevice' => $rb];
 }
@@ -583,5 +591,7 @@ try {
 } catch (Throwable $e) {
   if ($inTx) { try { db()->rollBack(); } catch (Throwable $x) {} }
   error_log('[IMS] ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
-  out(['ok' => false, 'error' => 'Terjadi kesalahan di server. Coba lagi, atau hubungi administrator.']);
+  $msg = 'Terjadi kesalahan di server. Coba lagi, atau hubungi administrator.';
+  try { if (cfg('debug', false)) $msg .= ' [Detail: ' . mb_substr($e->getMessage(), 0, 400) . ']'; } catch (Throwable $x) {}
+  out(['ok' => false, 'error' => $msg]);
 }
