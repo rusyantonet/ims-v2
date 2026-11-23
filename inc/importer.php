@@ -1,5 +1,5 @@
 <?php
-// Import data massal (khusus Admin). Pengganti importRun_, impInstall_, impRepl_, importUndo_ di Code.gs.
+// Import data massal (Admin dan Manager, pada project yang sedang dipilih). Pengganti importRun_, impInstall_, impRepl_, importUndo_ di Code.gs.
 // Format permintaan: { type:'install'|'repl'|'units', mode:'check'|'commit', rows:[{n,v}], opts:{createUnits,onExisting,allowNoSN}, label }
 
 function imp_norm($v) {
@@ -21,6 +21,7 @@ function imp_status($s) {   // '' = kosong, null = tidak dikenali
   if ($x === '') return '';
   if (in_array($x, ['installed', 'terpasang', 'terinstal', 'terinstall', 'sudah', 'ya', 'yes', 'y', '1', 'ok', 'true'], true)) return 'Installed';
   if (in_array($x, ['pending', 'belum', 'tidak', 'no', 'n', '0', 'false', '-'], true)) return 'Pending';
+  if (in_array($x, ['not required', 'not-required', 'notrequired', 'tidak perlu', 'tidak diperlukan', 'tidak dibutuhkan', 'n/a', 'na', 'nr'], true)) return 'Not Required';
   return null;
 }
 function imp_photo_id($s) {   // ID file Drive / tautan Drive / ID foto lokal; null = tidak valid
@@ -28,6 +29,9 @@ function imp_photo_id($s) {   // ID file Drive / tautan Drive / ID foto lokal; n
   if ($s === '') return '';
   if (preg_match('#/d/([\w-]{20,})#', $s, $m) || preg_match('/[?&]id=([\w-]{20,})/', $s, $m)) return $m[1];
   return preg_match('/^[\w-]{20,}$/', $s) ? $s : null;
+}
+function imp_exec($ctx, $sql, $args) {   // jalankan tulis ke database dan hitung baris yang benar-benar berubah
+  $ctx->res['written'] += q($sql, $args)->rowCount();
 }
 function imp_err($ctx, $n, $msg) { $ctx->res['errors'][] = ['n' => $n, 'msg' => $msg]; }
 function imp_warn($ctx, $n, $msg) { $ctx->res['warns'][] = ['n' => $n, 'msg' => $msg]; }
@@ -47,7 +51,7 @@ function r_importRun($p, $u) {
   $ctx->label = $label;
   $ctx->now = now_iso();
   $ctx->res = ['total' => count($rowsIn), 'ok' => 0, 'skipped' => 0, 'errors' => [], 'warns' => [], 'units' => 0, 'installs' => 0,
-               'updated' => 0, 'repl' => 0, 'newUnitIds' => [], 'unknownCols' => []];
+               'updated' => 0, 'repl' => 0, 'newUnitIds' => [], 'unknownCols' => [], 'written' => 0];
   $ctx->devs = rows('SELECT * FROM devices WHERE project_id = ?', [cur_id()]);
   $ctx->unitBy = [];
   foreach (rows('SELECT * FROM units WHERE project_id = ?', [cur_id()]) as $x) $ctx->unitBy[mb_strtolower(trim($x['unit_no']))] = $x;
@@ -55,6 +59,10 @@ function r_importRun($p, $u) {
   if ($type === 'repl') imp_repl($ctx);
   elseif ($type === 'units') imp_units($ctx);
   else imp_install($ctx);
+  if ($commit) {   // laporan jujur: apa yang benar-benar tertulis, dan ke project mana
+    $ctx->res['project'] = cur_name();
+    $ctx->res['unitCount'] = (int)val('SELECT COUNT(*) FROM units WHERE project_id = ?', [cur_id()]);
+  }
   return $ctx->res;
 }
 
@@ -93,9 +101,9 @@ function imp_install($ctx) {
       elseif ($st === '') { $st = 'Pending'; $emptyDev[] = $d['name']; }
       $sn = $d['need_sn'] ? imp_pick($m, [$k . ' - sn']) : '';
       if ($st === 'Installed' && $d['need_sn'] && $sn === '' && empty($o['allowNoSN'])) imp_err($ctx, $n, 'Serial Number ' . $d['name'] . ' wajib diisi (unit ' . $unitNo . ')');
-      if ($st === 'Pending' && $sn !== '') { imp_warn($ctx, $n, 'SN ' . $d['name'] . ' diabaikan karena status Pending'); $sn = ''; }
+      if ($st !== 'Installed' && $sn !== '') { imp_warn($ctx, $n, 'SN ' . $d['name'] . ' diabaikan karena status ' . $st); $sn = ''; }
       $photo = '';
-      if ($d['need_photo']) {
+      if ($d['need_photo'] && $st !== 'Not Required') {
         $photo = imp_photo_id(imp_pick($m, [$k . ' - foto']));
         if ($photo === null) { $photo = ''; imp_warn($ctx, $n, 'Foto ' . $d['name'] . ' tidak valid, diabaikan'); }
         if ($photo === '' && $ex) foreach ($oldD as $od) if (isset($od['deviceId']) && $od['deviceId'] === $d['id'] && !empty($od['photo'])) $photo = $od['photo'];
@@ -117,12 +125,12 @@ function imp_install($ctx) {
   }
 
   if ($ctx->commit) {
-    foreach ($newUnits as $x) q('INSERT INTO units (id, project_id, unit_no, type, notes, active) VALUES (?,?,?,?,?,1)', [$x['id'], $x['project_id'], $x['unit_no'], $x['type'], $x['notes']]);
+    foreach ($newUnits as $x) imp_exec($ctx, 'INSERT INTO units (id, project_id, unit_no, type, notes, active) VALUES (?,?,?,?,?,1)', [$x['id'], $x['project_id'], $x['unit_no'], $x['type'], $x['notes']]);
     foreach ($newIns as $x)
-      q('INSERT INTO installations (id, project_id, unit_id, unit_no, date, remarks, details, created_by, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)',
+      imp_exec($ctx, 'INSERT INTO installations (id, project_id, unit_id, unit_no, date, remarks, details, created_by, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)',
         [$x['id'], $x['project_id'], $x['unit_id'], $x['unit_no'], $x['date'], $x['remarks'], $x['details'], $x['created_by'], $x['created_at'], $x['updated_at']]);
     foreach ($upd as $x)
-      q('UPDATE installations SET unit_id = ?, unit_no = ?, date = ?, remarks = ?, details = ?, updated_at = ? WHERE id = ?',
+      imp_exec($ctx, 'UPDATE installations SET unit_id = ?, unit_no = ?, date = ?, remarks = ?, details = ?, updated_at = ? WHERE id = ?',
         [$x['b']['unit_id'], $x['b']['unit_no'], $x['b']['date'], $x['b']['remarks'], $x['b']['details'], $x['b']['updated_at'], $x['id']]);
   }
 }
@@ -160,7 +168,7 @@ function imp_repl($ctx) {
     $add[] = $rec; $ctx->res['ok']++; $ctx->res['repl']++;
   }
   if ($ctx->commit) foreach ($add as $x)
-    q('INSERT INTO replacements (id, project_id, unit_id, unit_no, device_id, device_name, date, old_sn, new_sn, reason, note, photo, created_by, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+    imp_exec($ctx, 'INSERT INTO replacements (id, project_id, unit_id, unit_no, device_id, device_name, date, old_sn, new_sn, reason, note, photo, created_by, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
       [$x['id'], $x['project_id'], $x['unit_id'], $x['unit_no'], $x['device_id'], $x['device_name'], $x['date'], $x['old_sn'], $x['new_sn'], $x['reason'], $x['note'], $x['photo'], $x['created_by'], $x['created_at']]);
 }
 
@@ -223,7 +231,7 @@ function imp_units($ctx) {
     $new[] = $row; $ctx->res['ok']++; $ctx->res['units']++; $ctx->res['newUnitIds'][] = $id;
   }
   if ($ctx->commit) {
-    foreach ($new as $x) q('INSERT INTO units (id, project_id, unit_no, type, notes, active) VALUES (?,?,?,?,?,?)', [$x['id'], $x['project_id'], $x['unit_no'], $x['type'], $x['notes'], $x['active']]);
-    foreach ($upd as $x) q('UPDATE units SET type = ?, notes = ?, active = ? WHERE id = ? AND project_id = ?', [$x['type'], $x['notes'], $x['active'], $x['id'], cur_id()]);
+    foreach ($new as $x) imp_exec($ctx, 'INSERT INTO units (id, project_id, unit_no, type, notes, active) VALUES (?,?,?,?,?,?)', [$x['id'], $x['project_id'], $x['unit_no'], $x['type'], $x['notes'], $x['active']]);
+    foreach ($upd as $x) imp_exec($ctx, 'UPDATE units SET type = ?, notes = ?, active = ? WHERE id = ? AND project_id = ?', [$x['type'], $x['notes'], $x['active'], $x['id'], cur_id()]);
   }
 }
