@@ -12,6 +12,7 @@ const APP_TITLE        = 'Dokumentasi Instalasi Unit';
 const REPORT_SUBTITLE  = 'MineSafeDrive - PT. Freeport Indonesia';   // cadangan jika nama project kosong
 const REQUIRE_PHOTO    = false;      // true = foto wajib saat status Installed
 const MAX_REPORT_PHOTOS = 30;
+const STATUSES = ['Installed', 'Pending', 'Not Required'];   // Not Required = unit memang tidak membutuhkan perangkat ini (tidak dihitung dalam progres)
 const REASONS = ['Rusak', 'Hilang', 'Upgrade', 'Lainnya'];
 const ROLES   = ['Admin', 'Manager', 'Engineer', 'Viewer'];
 const GUIDE_ROLES = ['Manager', 'Engineer', 'Viewer'];
